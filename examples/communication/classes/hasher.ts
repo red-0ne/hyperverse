@@ -1,9 +1,9 @@
 import { Injectable } from "injection-js";
 
 import { createHash } from "crypto";
-import { BaseMicroService } from "../../../base";
-import { Channel } from "../../../decorators";
-import { Registry } from "../../../registry";
+import { BaseMicroService } from "../../../src/base";
+import { Channel } from "../../../src/decorators";
+import { Registry } from "../../../src/registry";
 
 @Injectable()
 export class HashingService extends BaseMicroService {

@@ -1,7 +1,7 @@
 import { Injectable } from "injection-js";
 
-import { BaseMicroService } from "../../../base";
-import { Registry } from "../../../registry";
+import { BaseMicroService } from "../../../src/base";
+import { Registry } from "../../../src/registry";
 import { HashingService } from "./hasher";
 
 @Injectable()

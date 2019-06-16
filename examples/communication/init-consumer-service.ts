@@ -2,10 +2,10 @@ import "reflect-metadata";
 
 import { ReflectiveInjector } from "injection-js";
 
-import { IPeerId, StartedRunner } from "../../lang";
-import { ClassProxy } from "../../proxy";
-import { ExternalRegistries, Registry } from "../../registry";
-import { Runner } from "../../runner";
+import { IPeerId, StartedRunner } from "../../src/lang";
+import { ClassProxy } from "../../src/proxy";
+import { ExternalRegistries, Registry } from "../../src/registry";
+import { Runner } from "../../src/runner";
 import { Consumer } from "./classes/consumer";
 import { HashingService } from "./classes/hasher";
 

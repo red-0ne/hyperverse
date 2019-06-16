@@ -2,10 +2,10 @@ import "reflect-metadata";
 
 import { ReflectiveInjector } from "injection-js";
 
-import { IPeerId, StartedRunner } from "../../lang";
-import { Registry } from "../../registry";
-import { Runner } from "../../runner";
-import { PeerId, RunnerConfig } from "../../runner-config";
+import { IPeerId, StartedRunner } from "../../src/lang";
+import { Registry } from "../../src/registry";
+import { Runner } from "../../src/runner";
+import { PeerId, RunnerConfig } from "../../src/runner-config";
 
 const mainRegistry: IPeerId = {
   id: {

@@ -2,9 +2,9 @@ import "reflect-metadata";
 
 import { ReflectiveInjector } from "injection-js";
 
-import { IPeerId, StartedRunner } from "../../lang";
-import { ExternalRegistries, Registry } from "../../registry";
-import { Runner } from "../../runner";
+import { IPeerId, StartedRunner } from "../../src/lang";
+import { ExternalRegistries, Registry } from "../../src/registry";
+import { Runner } from "../../src/runner";
 import { HashingService } from "./classes/hasher";
 
 const mainRegistry: IPeerId = {
