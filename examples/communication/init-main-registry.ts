@@ -2,7 +2,8 @@ import "reflect-metadata";
 
 import { ReflectiveInjector } from "injection-js";
 
-import { IPeerId, StartedRunner } from "../../src/lang";
+import { IPeerId } from "../../src/lang";
+import { Logger, LogLevel } from "../../src/logger";
 import { Registry } from "../../src/registry";
 import { Runner } from "../../src/runner";
 import { PeerId, RunnerConfig } from "../../src/runner-config";
@@ -20,13 +21,12 @@ const mainRegistry: IPeerId = {
 
 const injector = ReflectiveInjector.resolveAndCreate([
   { provide: PeerId, useValue: mainRegistry },
+  { provide: LogLevel, useValue: 0x3f },
+  Logger,
   RunnerConfig,
   Runner,
   Registry,
 ]);
 
 injector.get(Registry);
-injector.get(Runner).start().then((runner: StartedRunner) => {
-  // tslint:disable-next-line:no-console
-  console.log("HashingService started", runner.peerId.addresses);
-});
+injector.get(Runner).start();

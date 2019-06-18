@@ -2,7 +2,8 @@ import "reflect-metadata";
 
 import { ReflectiveInjector } from "injection-js";
 
-import { IPeerId, StartedRunner } from "../../src/lang";
+import { IPeerId } from "../../src/lang";
+import { Logger, LogLevel } from "../../src/logger";
 import { ClassProxy } from "../../src/proxy";
 import { ExternalRegistries, Registry } from "../../src/registry";
 import { Runner } from "../../src/runner";
@@ -20,22 +21,20 @@ const mainRegistry: IPeerId = {
 
 const injector = ReflectiveInjector.resolveAndCreate([
   { provide: ExternalRegistries, useValue: [ mainRegistry ] },
+  { provide: LogLevel, useValue: 0x3f },
   Runner,
   Registry,
   Consumer,
+  Logger,
   ClassProxy(HashingService),
 ]);
 
-injector.get(Runner).start().then((runner: StartedRunner) => {
+const consumer = injector.get(Consumer);
+injector.get(Runner).start().then(() => {
   // tslint:disable-next-line:no-console
-  console.log(
-    "ConsumerService started",
-    runner.peerId.addresses,
-    "\nInput data to hash:",
-  );
+  console.log("Input data to hash:");
 
   let buffer: string = "";
-  const consumer = injector.get(Consumer);
 
   process.stdin.on("data", (data: string) => {
     let lines: string[];
