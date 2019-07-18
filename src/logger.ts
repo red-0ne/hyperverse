@@ -1,9 +1,5 @@
 import { Inject, Injectable, InjectionToken, Optional } from "injection-js";
 
-import { BaseMicroService } from "./base";
-import { Channel } from "./decorators";
-import { Registry } from "./registry";
-
 export const LogLevel = new InjectionToken("LogLevel");
 export const AvailableLogLevels = new InjectionToken("AvailableLogLevels");
 

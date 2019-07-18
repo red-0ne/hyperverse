@@ -48,7 +48,7 @@ export class CommNode extends libp2p {
   }
 
   public handleMessages(callBack: (...args: any[]) => Promise<any>) {
-    this.handle("/hyperverse/json/1", (protocol: unknown, conn: any) => {
+    this.handle("/hyperverse/json/1", (_: unknown, conn: any) => {
       conn.getPeerInfo((err: any, peerInfo: any) => {
         if (err) {
           throw new Exception("COMMUNICATION", "PEER_INFO_FAILED", err);

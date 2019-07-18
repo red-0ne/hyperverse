@@ -16,4 +16,16 @@ export class Consumer extends BaseMicroService {
       hash: await this.hasher.sha512(data),
     };
   }
+
+  public captureStdIn(callback: (line: string) => void) {
+    let buffer: string = "";
+
+    process.stdin.on("data", (data: string) => {
+      let lines: string[];
+      buffer += data;
+
+      [ buffer, ...lines ] = buffer.split("\n").reverse();
+      lines.map(callback);
+    });
+  }
 }
