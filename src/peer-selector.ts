@@ -12,7 +12,7 @@ export class PeerSelector {
       existingServices = await this.registry.getService(serviceName) || [];
     }
 
-    const remoteRecord = existingServices.find((record) => record.peerId);
+    const remoteRecord = existingServices.find(record => record.peerId);
 
     if (!remoteRecord) {
       throw new Exception("REGISTRY", "UNKNOWN_SERVICE", serviceName);

@@ -45,7 +45,7 @@ export class Registry {
   }
 
   public async register(services: IRegistryRecord[], peerId?: IPeerId) {
-    services.forEach((s) => {
+    services.forEach(s => {
       this.logger.log("debug", "REGISTRY", "REGISTERING_REMOTE_SERVICE", s.name);
 
       if (!this.services.has(s.name)) {
@@ -78,7 +78,7 @@ export class Registry {
     const gatherServices = this.externalRegistries.map((peerId: IPeerId) =>
       this.runner.transmit<Registry["getService"]>(peerId, ...args).catch(() => null));
 
-    return Promise.all(gatherServices).then((allServices) => allServices.forEach((services) => {
+    return Promise.all(gatherServices).then(allServices => allServices.forEach(services => {
       if (services) {
         this.register(services);
       }
@@ -87,7 +87,7 @@ export class Registry {
 
   public async publish(services: IRegistryRecord[]) {
     if (this.externalRegistries) {
-      this.externalRegistries.forEach((peerId) => {
+      this.externalRegistries.forEach(peerId => {
         this.logger.log("debug", "REGISTRY", "PUBLISHING_LOCAL_SERVICES", services.length);
         this.runner.transmit(peerId, "Registry", "register", [ services ]);
       });

@@ -39,10 +39,10 @@ export class Runner {
   public async start(): Promise<StartedRunner> {
     const node = await this.commNode;
 
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       node.start(() => {
         node.handleMessages(this.handleCalls.bind(this));
-        this.startEventListeners.forEach((callback) => callback(node));
+        this.startEventListeners.forEach(callback => callback(node));
 
         this.logger.log("debug", "RUNNER", "STARTED_RUNNER", this.peerId!.addresses);
         resolve(this as StartedRunner);
@@ -57,7 +57,7 @@ export class Runner {
     method: string,
     payload: any[],
   ) {
-    return this.commNode.then((comm) => comm.sendMessage(
+    return this.commNode.then(comm => comm.sendMessage(
       peerId,
       this.requestIdCounter++,
       INSTRUCTION.call,

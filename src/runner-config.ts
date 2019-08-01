@@ -48,7 +48,7 @@ export class RunnerConfig {
           reject(err);
         }
 
-        this.multiAddrs.forEach((addr) => peerInfo.multiaddrs.add(addr));
+        this.multiAddrs.forEach(addr => peerInfo.multiaddrs.add(addr));
         this.peerInfo = peerInfo;
 
         const id = peerInfo.id.toJSON();
