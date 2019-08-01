@@ -25,7 +25,7 @@ export class CommNode extends libp2p {
           throw new Exception("COMMUNICATION", "PEER_CREATION_FAILED", createError);
         }
 
-        peerId.addresses.forEach((addr) => peerInfo.multiaddrs.add(addr));
+        peerId.addresses.forEach(addr => peerInfo.multiaddrs.add(addr));
 
         this.dialProtocol(peerInfo, "/hyperverse/json/1", (dialError: any, connection: any) => {
           if (dialError) {

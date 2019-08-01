@@ -21,7 +21,7 @@ function proxyFactory<T>(service: T, runner: Runner, selector: PeerSelector, log
   const proxy = {} as PromiseReturn<T>;
   const serviceName: string = (service as any).name;
 
-  generateServiceMethods(service).forEach((method) => {
+  generateServiceMethods(service).forEach(method => {
     (proxy as any)[method] = async (...args: any[]) => {
       logger.log("debug", "PROXY", "PICKING_SERVICE_INSTANCE", serviceName);
       const peerId = await selector.getPeer(serviceName);

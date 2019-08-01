@@ -15,14 +15,14 @@ export function ServiceMix<S extends any[]>(...serviceClasses: S): IntersectionT
     public static components: Array<IConstructor<any>> = [];
     constructor(injector: Injector) {
       super(injector.get(Runner));
-      serviceClasses.forEach((serviceClass) => {
+      serviceClasses.forEach(serviceClass => {
         Object.assign(this, injector.get(serviceClass));
       });
     }
   };
 
-  serviceClasses.forEach((serviceClass) => {
-    Object.getOwnPropertyNames(serviceClass.prototype).forEach((name) => {
+  serviceClasses.forEach(serviceClass => {
+    Object.getOwnPropertyNames(serviceClass.prototype).forEach(name => {
       const baseDesc = Object.getOwnPropertyDescriptor(serviceClass.prototype, name);
       if (baseDesc && name !== "constructor") {
         Object.defineProperty(base.prototype, name, baseDesc);

@@ -5,9 +5,10 @@
   ],
   "jsRules": {},
   "rules": {
-  	"no-string-literal": false,
-	"object-literal-sort-keys": false,
-	"no-conditional-assignment": false
+    "no-string-literal": false,
+    "object-literal-sort-keys": false,
+    "no-conditional-assignment": false,
+    "arrow-parens": [true, "ban-single-arg-parens"]
   },
   "rulesDirectory": [],
   "linterOptions": {
