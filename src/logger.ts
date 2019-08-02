@@ -1,7 +1,6 @@
 import { Inject, Injectable, InjectionToken, Optional } from "injection-js";
 
-export const LogLevel = new InjectionToken("LogLevel");
-export const AvailableLogLevels = new InjectionToken("AvailableLogLevels");
+export const LogLevel = new InjectionToken<number>("LogLevel");
 
 const LOG_LEVELS = {
   debug: 1,

@@ -5,7 +5,7 @@ import { Logger } from "./logger";
 import { generateServiceMethods } from "./proxy";
 import { Runner } from "./runner";
 
-export const ExternalRegistries = new InjectionToken("ExternalRegistries");
+export const ExternalRegistries = new InjectionToken<IPeerId[]>("ExternalRegistries");
 
 @Injectable()
 export class Registry {

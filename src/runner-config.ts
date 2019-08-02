@@ -16,9 +16,9 @@ const defaultModules = {
 
 const defaultMultiaddrs = [ "/ip4/0.0.0.0/tcp/0" ];
 
-export const RunnerAddresses = new InjectionToken("RunnerAddresses");
-export const RunnerModules = new InjectionToken("RunnerModules");
-export const PeerId = new InjectionToken("PeerId");
+export const RunnerAddresses = new InjectionToken<string[]>("RunnerAddresses");
+export const RunnerModules = new InjectionToken<any>("RunnerModules");
+export const PeerId = new InjectionToken<IPeerId>("PeerId");
 
 @Injectable()
 export class RunnerConfig {
