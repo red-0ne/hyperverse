@@ -21,3 +21,5 @@ node dist/examples/communication/init-hasher.js
 ```
 node dist/examples/communication/init-consumer-service.js
 ```
+
+You will be prompted to input strings that you want to hash, the hash is then displayed in console.
