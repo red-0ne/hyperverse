@@ -11,7 +11,7 @@
   "dependencies": {
     "eslint": "^5.16.0",
     "injection-js": "^2.2.1",
-    "libp2p": "^0.25.4",
+    "libp2p": "^0.38.0",
     "libp2p-secio": "^0.11.1",
     "libp2p-spdy": "^0.13.3",
     "libp2p-tcp": "^0.13.0",
