@@ -1,46 +1,25 @@
 import { FQN, ValueObjectConstructor, ValueObjectFQN } from "../value-object/types";
-import { ServiceConfig, ServiceConfigMap, ValueObjectMap } from "./types";
+import { ServiceConfig, ServiceConfigs, ValueObjectMap } from "./types";
 
 export class NamingService {
   public readonly fqnKey = "Hyperverse::Core::FQN::0" as const;
 
-  #serviceConfigs: ServiceConfigMap = new Map();
+  #serviceConfigs: ServiceConfigs = {};
   #valueObjectConstructors: ValueObjectMap = new Map();
 
   public registerService(name: FQN, config: ServiceConfig) {
-    if (this.#serviceConfigs.has(name)) {
+    if (this.#serviceConfigs[name] !== undefined) {
       throw new Error("Already registered");
     }
 
-    this.#serviceConfigs.set(name, config);
+    this.#serviceConfigs[name] = config;
   }
 
   public getServiceConfig(name: FQN): ServiceConfig {
-    const config = this.#serviceConfigs.get(name);
+    const config = this.#serviceConfigs[name];
 
     if (config === undefined) {
       throw new Error("Not registered");
-    }
-
-    return config;
-  }
-
-  public serviceConfigs() {
-    const config: { [service in FQN]: { [method: string]: ServiceConfig["commands"] } } = {};
-    for (const [serviceName, serviceConfig] of this.#serviceConfigs.entries()) {
-      const cfg: { [method: string]: ServiceConfig["commands"] } = {};
-      for (const method in serviceConfig.commands) {
-        if (serviceConfig.exposed.includes(method)) {
-          const command = serviceConfig.commands[method];
-          if (command === undefined) {
-            throw new Error("Invalid config");
-          }
-
-          cfg[method] = command;
-        }
-      }
-
-      config[serviceName] = cfg;
     }
 
     return config;

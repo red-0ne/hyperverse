@@ -3,7 +3,7 @@ import { NetworkingServiceToken } from "../networking/networking";
 import { PeerUpdated } from "./events";
 import { CoreNamingService } from "./naming-service";
 import { PeerUpdatesStreamToken } from "./service-registry";
-import { PeerId, PeerInfo, Service } from "./types";
+import { PeerId, PeerInfo, Service, ServiceConfigs } from "./types";
 import { dependencyBundleFactory } from "../di-bundle";
 import { ErrorObject } from "../errors";
 import { DataMessage, CommandMessage, commandMessageFQN, dataMessageFQN } from "../messaging";
@@ -25,16 +25,16 @@ export class RunnerDeps extends dependencyBundleFactory({
 
 @Injectable()
 export class Runner {
-  protected peers = new Map<PeerId["value"], PeerUpdated>();
-  protected dataStreams = new Map<string, any>();
-  protected peerInfo: PeerInfo;
-  protected exposedServices: ReturnType<typeof CoreNamingService["serviceConfigs"]>;
+  readonly #peers = new Map<PeerId["value"], PeerUpdated>();
+  readonly #dataStreams = new Map<string, any>();
+  readonly #peerInfo: PeerInfo;
+  readonly #exposedServices: { [key: string]: string[] } = {};
+  readonly #serviceConfigs: ServiceConfigs = {};
+  readonly #deps: RunnerDeps;
 
-  constructor(
-    protected readonly deps: RunnerDeps,
-    @Inject(Injector) protected readonly injector: Injector
-  ) {
-    this.peerInfo = this.deps.identity.getPeerInfo();
+  constructor(deps: RunnerDeps, @Inject(Injector) protected readonly injector: Injector) {
+    this.#deps = deps;
+    this.#peerInfo = this.#deps.identity.getPeerInfo();
   }
 
   protected async start() {
@@ -44,23 +44,23 @@ export class Runner {
   }
 
   protected async setupLocalServices() {
-    await this.deps.peerUpdates.emit(PeerUpdated.from({
-      peerInfo: this.peerInfo,
-      services: this.exposedServices,
+    await this.#deps.peerUpdates.emit(PeerUpdated.from({
+      peerInfo: this.#peerInfo,
+      services: this.#exposedServices
     }));
   }
 
   protected async subscribeToPeerUpdates() {
-    for await (const peerUpdate of this.deps.peerUpdates.stream()) {
+    for await (const peerUpdate of this.#deps.peerUpdates.stream()) {
       const peerId = peerUpdate.payload.peerInfo.peerId.value;
-      this.peers.set(peerId, peerUpdate);
+      this.#peers.set(peerId, peerUpdate);
     }
   }
 
   protected async handleMessages() {
-    for await (const message of this.deps.networking.messages()) {
+    for await (const message of this.#deps.networking.messages()) {
       if (message.FQN.indexOf("Core::ValueObject::Message::") !== 0) {
-        this.deps.logger.emit(new InvalidMessage({ context: message }));
+        this.#deps.logger.emit(new InvalidMessage({ context: message }));
       }
 
       if (message.FQN.indexOf(commandMessageFQN) === 0) {
@@ -72,14 +72,14 @@ export class Runner {
   }
 
   protected async handleIncomingData(data: DataMessage<any, any>) {
-    const stream = this.dataStreams.get(data.id);
+    const stream = this.#dataStreams.get(data.id);
     if (stream === undefined) {
-      this.deps.logger.emit(new UnknownStreamId({ context: data }));
+      this.#deps.logger.emit(new UnknownStreamId({ context: data }));
       return;
     }
 
     if (!stream.isValid(data)) {
-      this.deps.logger.emit(new InvalidData({ expectedFQN: stream.FQN, context: data }));
+      this.#deps.logger.emit(new InvalidData({ expectedFQN: stream.FQN, context: data }));
       return;
     }
 
@@ -88,14 +88,14 @@ export class Runner {
 
     if (data.end) {
       stream.done();
-      this.dataStreams.delete(data.id);
+      this.#dataStreams.delete(data.id);
     }
   }
 
   protected async handleIncomingCommand(cmd: CommandMessage) {
     const { payload, origin, id } = cmd;
     const { serviceFQN, command, params } = payload;
-    const exposedService = this.exposedServices[serviceFQN];
+    const exposedService = this.#exposedServices[serviceFQN];
 
     let error: ErrorObject | undefined;
 
@@ -113,21 +113,21 @@ export class Runner {
     }
 
     if (error !== undefined) {
-      this.deps.networking.send(error, id, origin);
+      this.#deps.networking.send(error, id, origin);
       return;
     }
 
     const service: Service<typeof serviceFQN> = this.injector.get(serviceFQN);
     if (service === undefined) {
-      this.deps.logger.emit(new ServiceNotInjected({ context: cmd }));
-      this.deps.networking.send(new InternalError(), id, origin);
+      this.#deps.logger.emit(new ServiceNotInjected({ context: cmd }));
+      this.#deps.networking.send(new InternalError(), id, origin);
 
       return;
     }
 
     if (typeof service[command] !== "function") {
-      this.deps.logger.emit(new CommandNotFound({ context: cmd }));
-      this.deps.networking.send(new InternalError(), id, origin);
+      this.#deps.logger.emit(new CommandNotFound({ context: cmd }));
+      this.#deps.networking.send(new InternalError(), id, origin);
 
       return;
     }
@@ -135,10 +135,10 @@ export class Runner {
     try {
       // @ts-ignore - we know the command exists
       const response = await service[command](params);
-      this.deps.networking.send(response, id, origin);
+      this.#deps.networking.send(response, id, origin);
     } catch (e) {
-      this.deps.logger.emit(new UnexpectedError({ error: e, context: cmd }));
-      this.deps.networking.send(new InternalError(), id, origin);
+      this.#deps.logger.emit(new UnexpectedError({ error: e, context: cmd }));
+      this.#deps.networking.send(new InternalError(), id, origin);
     }
   }
 }

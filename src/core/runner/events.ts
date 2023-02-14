@@ -5,7 +5,7 @@ import { PeerInfo } from "./types";
 export class PeerUpdated extends domainEventClassFactory(
   "Core::ValueObject::DomainEvent::PeerUpdated",
   z.object({
-    services: z.record(z.record(z.string())),
+    services: z.record(z.array(z.string())),
     peerInfo: PeerInfo.schema(),
   }),
 ) {}

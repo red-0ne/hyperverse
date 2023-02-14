@@ -25,15 +25,8 @@ export type ServiceConstructor<
 export type ServiceConfig<Svc extends ServiceConstructor = ServiceConstructor> = {
   commands: {
     [command in keyof InstanceType<Svc>]: {
-      params: Parameters<InstanceType<Svc>[command]>[0] extends ValueObject
-        ? ValueObjectConstructor<
-            Parameters<InstanceType<Svc>[command]>[0]["FQN"],
-            Parameters<InstanceType<Svc>[command]>[0]
-          >
-        : never,
-      return: ReturnType<InstanceType<Svc>[command]> extends DeferredReply
-        ? DeferredReply
-        : never,
+      params: ValueObjectConstructor,
+      return: DeferredReply,
     }
   },
   exposed: (keyof InstanceType<Svc> & string)[],
@@ -42,7 +35,7 @@ export type ServiceConfig<Svc extends ServiceConstructor = ServiceConstructor> =
 export type ValueObjectMap<Name extends ValueObjectFQN = ValueObjectFQN> =
   Map<Name, ValueObjectConstructor<Name>>;
 
-export type ServiceConfigMap<ServiceName extends FQN = FQN> = Map<ServiceName, ServiceConfig>
+export type ServiceConfigs = { [key: FQN]: ServiceConfig };
 
 export const peerIdSchema = z.object({ value: z.string() }); // this should be a public key
 export class PeerId extends valueObjectClassFactory("Core::ValueObject::PeerId", peerIdSchema) {}

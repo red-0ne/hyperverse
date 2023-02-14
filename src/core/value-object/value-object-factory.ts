@@ -65,7 +65,7 @@ function buildPrototype<
       },
       enumerable: true,
     },
-    value: {
+    rawValue: {
       value: function(this: { __parsedValue__: Value }) {
         // use structuredClone ?
         return this.__parsedValue__;
