@@ -4,7 +4,7 @@ import { CoreNamingService } from "../runner/naming-service";
 
 const root = z.unknown();
 
-function valueObjectRootConstructor() {};
+function valueObjectRootConstructor() {}
 
 export function isValueObject(value: any): value is ValueObject {
   return value instanceof valueObjectRootConstructor;

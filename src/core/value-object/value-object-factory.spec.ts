@@ -4,7 +4,7 @@ import { isValueObject, valueObjectClassFactory } from "./value-object-factory";
 
 describe("valueOBjectFactory", () => {
   const schema = myzod.object({ foo: myzod.string(), doo: myzod.number() });
-  class Test extends valueObjectClassFactory("Core::ValueObject::Test", schema) {};
+  class Test extends valueObjectClassFactory("Core::ValueObject::Test", schema) {}
 
   test("setup discriminator key", () => {
     const x = { foo: "uuu", doo: 1212 };
