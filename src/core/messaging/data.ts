@@ -1,6 +1,6 @@
 import z from "myzod";
 
-import { ServiceConstructor } from "../runner/types";
+import { ServiceConstructor } from "../runner/service";
 import { CoreNamingService, valueObjectClassFactory } from "../value-object";
 import { ValueObjectFQN } from "../value-object/types";
 import { messageSchema } from "./message";

@@ -3,11 +3,11 @@ import { NetworkingServiceToken } from "../networking/networking";
 import { PeerUpdated } from "./events";
 import { CoreNamingService } from "./naming-service";
 import { PeerUpdatesStreamToken } from "./service-registry";
-import { PeerId, PeerInfo, Service } from "./types";
+import { PeerId, PeerInfo } from "./types";
+import { ExposedServicesToken, Service } from "./service";
 import { dependencyBundleFactory } from "../di-bundle";
 import { ErrorObject } from "../errors";
 import { StreamService } from "../stream/stream-service";
-import { FQN } from "../value-object";
 import { isValueObject } from "../value-object/value-object-factory";
 
 import {
@@ -31,16 +31,13 @@ import {
   InvalidReturn
 } from "./errors";
 
-type ExposedCommands = Record<FQN, string[]>;
-
 export class RunnerDeps extends dependencyBundleFactory({
   peerUpdates: PeerUpdatesStreamToken,
   logger: new InjectionToken<StreamService>("Foo"),
   networking: NetworkingServiceToken,
-  identity: new InjectionToken<{
-    getPeerInfo: () => PeerInfo,
-  }>("IdentityService"),
-  exposedServices: new InjectionToken<ExposedCommands>("ExposedServices"),
+  // Have a proper impl for identity
+  identity: new InjectionToken<{ getPeerInfo: () => PeerInfo, }>("IdentityService"),
+  exposedServices: ExposedServicesToken,
 }) {}
 
 @Injectable()
@@ -58,10 +55,10 @@ export class Runner {
   protected async start() {
     this.subscribeToPeerUpdates();
     this.handleMessages();
-    await this.setupLocalServices();
+    await this.publishExposedServices();
   }
 
-  protected async setupLocalServices() {
+  protected async publishExposedServices() {
     for (const [serviceName, serviceConfig] of Object.entries(this.#deps.exposedServices)) {
       for (const commandName of serviceConfig) {
         // @ts-expect-error serviceName is a FQN
@@ -96,7 +93,7 @@ export class Runner {
     }
   }
 
-  protected async handleIncomingData(data: DataMessage<any, any>) {
+  protected async handleIncomingData(data: DataMessage) {
     const stream = this.#dataStreams.get(data.id);
     if (stream === undefined) {
       this.#deps.logger.emit(new UnknownStreamId({ context: data }));
@@ -120,6 +117,7 @@ export class Runner {
   protected async handleIncomingCommand(cmd: CommandMessage) {
     const { payload, origin, id } = cmd;
     const { serviceFQN, command, param } = payload;
+    // Naming service should be injectable (?)
     const commandConfig = CoreNamingService.getCommandConfig(serviceFQN, command)
 
     let error: ErrorObject | undefined;
@@ -128,7 +126,7 @@ export class Runner {
       error = new UnknownCommand({ context: cmd });
     } else if (!commandConfig.exposed) {
       error = new ServiceUnavailable({ context: cmd });
-    } else if (!isValueObject(param) || commandConfig.paramFQN !== param.FQN) {
+    } else if (commandConfig.paramFQN !== param.FQN) {
       error = new InvalidParameters({ context: cmd, expectedFQN: commandConfig.paramFQN });
     }
 

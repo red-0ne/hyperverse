@@ -1,9 +1,9 @@
 import { Infer, ObjectType } from "myzod";
 import { valueObjectClassFactory } from "../value-object";
-import { ErrorFQN, ErrorObjectConstructor } from "./types";
+import { ErrorObjectFQN, ErrorObjectConstructor } from "./types";
 
 export function errorObjectClassFactory<
-  Name extends ErrorFQN,
+  Name extends ErrorObjectFQN,
   Validator extends ObjectType<any>,
 >(
   name: Name,

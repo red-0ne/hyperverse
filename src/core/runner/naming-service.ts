@@ -1,6 +1,7 @@
 import { DeferredReply } from "../messaging";
 import { FQN, ValueObjectConstructor, ValueObjectFQN } from "../value-object/types";
-import { Service, CommandsConfig, ServiceConfigs, ServiceConstructor, ServiceToken, ValueObjectMap } from "./types";
+import { ValueObjectMap } from "./types";
+import { Service, CommandsConfig, ServiceConfigs, ServiceConstructor, ServiceToken } from "./service";
 
 export class NamingService {
   public readonly fqnKey = "Hyperverse::Core::FQN::0" as const;

@@ -1,13 +1,13 @@
 import { Compute } from "../utils";
 import { ValueObject, ValueObjectConstructor, ValueObjectFQN } from "../value-object/types";
 
-export type ErrorFQN<
+export type ErrorObjectFQN<
   Domain extends string = string,
   Implementation extends string = string
 > = ValueObjectFQN<Domain, `Error::${Implementation}`>;
 
 export type ErrorObjectConstructor<
-  Name extends ErrorFQN = ErrorFQN,
+  Name extends ErrorObjectFQN = ErrorObjectFQN,
   Context extends { [key: string]: any } = { [key: string]: any },
 > = Compute<{
   new(context: Context): ErrorObject<Name, Context>,
@@ -17,6 +17,6 @@ export type ErrorObjectConstructor<
 >>;
 
 export type ErrorObject<
-  Name extends ErrorFQN = ErrorFQN,
+  Name extends ErrorObjectFQN = ErrorObjectFQN,
   Context extends { [key: string]: any } = { [key: string]: any }
 > = ValueObject<Name, Context>;

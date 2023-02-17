@@ -19,6 +19,8 @@ export type StreamService<
   DataConstructors extends { [key: number]: ValueObjectConstructor<ValueObjectFQN, any> } = any,
   Data = InstanceType<DataConstructors[number]>,
 > = {
+  // Have proper resourceId type
+  readonly resourceId: string;
   readonly FQN: Name;
   readonly ids: DataConstructors;
 
