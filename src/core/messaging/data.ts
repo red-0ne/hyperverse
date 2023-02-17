@@ -11,17 +11,19 @@ export function dataMessageClassFactory<
   Ctor extends ServiceConstructor,
   Command extends keyof InstanceType<Ctor>,
 >(serviceCtor: Ctor, commandName: Command & string) {
-  const serviceConfig = CoreNamingService.getServiceConfig(serviceCtor.FQN);
-  const success = serviceConfig?.commands?.[commandName]?.return.success;
-  const failures = serviceConfig?.commands?.[commandName]?.return.failures;
+  const serviceConfig = CoreNamingService.getCommandConfig(serviceCtor.FQN, commandName);
+  if (!serviceConfig) {
+    throw new Error(`Service ${serviceCtor.FQN} does not have a command named ${commandName}`);
+  }
+
+  const possibleReturns = serviceConfig.returnFQNs;
 
   return valueObjectClassFactory(
     `${dataMessageFQN}${serviceCtor.FQN}::${commandName}`,
     messageSchema.and(z.object({
-      payload: z.union([
-        success.schema(),
-        ...failures.map(f => f.schema()),
-      ]),
+      payload: z.union(possibleReturns
+        .map(r => CoreNamingService.getValueObjectConstructor(r).schema())
+      ),
     })),
   );
 }

@@ -1,11 +1,12 @@
 import { InjectionToken } from "injection-js";
 import { Message } from "../messaging/message";
+import { ValueObject } from "../value-object";
 
 export type NetworkingService = {
-  send<Msg extends Message>(
-    data: Msg["payload"],
-    id: Msg["id"],
-    origin: Msg["origin"],
+  send(
+    data: ValueObject,
+    id: Message["id"],
+    origin: Message["origin"],
   ): Promise<void>;
   messages<
     FilteredMessage extends Message,

@@ -45,7 +45,7 @@ export function dependencyBundleFactory<T extends DependencyBundleTokenMap>(bund
   const DependencyBundle = class {
     constructor(injector: Injector) {
       for (const key in bundleMap) {
-        // @ts-ignore
+        // @ts-expect-error we are dynamically building the class out of the bundleMap
         this[key] = injector.get(bundleMap[key]);
       }
     }

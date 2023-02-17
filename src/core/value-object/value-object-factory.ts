@@ -4,6 +4,8 @@ import { CoreNamingService } from "../runner/naming-service";
 
 const root = z.unknown();
 
+// we use this to create a root constructor for value objects so we can use instanceof
+// eslint-disable-next-line @typescript-eslint/no-empty-function
 function valueObjectRootConstructor() {}
 
 export function isValueObject(value: any): value is ValueObject {
@@ -36,7 +38,7 @@ export function valueObjectClassFactory<
     { constructor: { value: ValueObjectConstructor } },
   );
 
-  // @ts-ignore
+  // @ts-expect-error we suppress type too complex error
   CoreNamingService.registerValueObject(ValueObjectConstructor);
 
   return ValueObjectConstructor;
@@ -65,7 +67,7 @@ function buildPrototype<
       },
       enumerable: true,
     },
-    rawValue: {
+    value: {
       value: function(this: { __parsedValue__: Value }) {
         // use structuredClone ?
         return this.__parsedValue__;

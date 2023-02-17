@@ -20,11 +20,11 @@ describe("Dependency bundles", () => {
 
   test("creates a dependency bundle with values, classes and factories", () => {
     class SomeClass {
-      public readonly FQN: "SomeClass" = "SomeClass";
+      public readonly FQN = "SomeClass";
     }
 
     class FooClass {
-      public readonly FQN: "FooClass" = "FooClass";
+      public readonly FQN = "FooClass";
       constructor (public lol: string) {}
     }
 

@@ -1,16 +1,11 @@
-import { InjectionToken } from "injection-js";
 import z from "myzod";
 
 export type Constructor<Instance, Arguments extends any[] = any[]> = {
   new(...args: Arguments): Instance,
 }
 
-export class ServiceToken<Service> extends InjectionToken<Service> {
-  constructor(public readonly name: string) {
-    super(name);
-  }
-}
-export type Compute<A extends any> = A extends Function
+// eslint-disable-next-line @typescript-eslint/ban-types
+export type Compute<A> = A extends Function
   ? A
   : {[K in keyof A]: A[K]} & unknown;
 

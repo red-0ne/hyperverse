@@ -15,7 +15,7 @@ describe("valueOBjectFactory", () => {
 
   test("throw on validation error", () => {
     try {
-      // @ts-expect-error
+      // @ts-expect-error we willfully pass invalid data
       new Test({ foo: 1 });
       expect(false);
     } catch (e) {

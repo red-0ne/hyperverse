@@ -16,26 +16,34 @@ export class InvalidData extends errorObjectClassFactory(
   }),
 ) {}
 
-export class UnknownService extends errorObjectClassFactory(
-  "Core::ValueObject::Error::UnknownService",
-  z.object({
-    serviceFQN: z.string(),
-  }),
-) {}
-
 export class UnknownCommand extends errorObjectClassFactory(
   "Core::ValueObject::Error::UnknownCommand",
   z.object({
-    serviceFQN: z.string(),
-    command: z.string(),
+    context: z.unknown(),
   }),
 ) {}
 
 export class ServiceUnavailable extends errorObjectClassFactory(
   "Core::ValueObject::Error::ServiceUnavailable",
   z.object({
-    serviceFQN: z.string(),
-    command: z.string(),
+    context: z.unknown(),
+  }),
+) {}
+
+export class InvalidParameters extends errorObjectClassFactory(
+  "Core::ValueObject::Error::BadParameters",
+  z.object({
+    expectedFQN: z.unknown(),
+    context: z.unknown(),
+  }),
+) {}
+
+export class InvalidReturn extends errorObjectClassFactory(
+  "Core::ValueObject::Error::BadReturn",
+  z.object({
+    context: z.unknown(),
+    expectedFQNs: z.array(z.string()).min(1),
+    actualFQN: z.unknown(),
   }),
 ) {}
 

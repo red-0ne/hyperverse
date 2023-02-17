@@ -9,8 +9,8 @@ export type FQN<
 > = `${Domain}::${Abstraction}::${Implementation}`;
 
 export type ValueObjectFQN<
-  Domain extends string = any,
-  Implementation extends string = any,
+  Domain extends string = string,
+  Implementation extends string = string,
 > = `${Domain}::ValueObject::${Implementation}`;
 
 export type ValueObject<
@@ -20,7 +20,7 @@ export type ValueObject<
   readonly FQN: Name,
   toJSON(): { [key in CoreNamingService["fqnKey"]]: Name } & { value: ValidatedValue },
   validator(): ObjectType<any>,
-  properties(): [(keyof ValidatedValue)],
+  properties(): (keyof ValidatedValue)[],
 } & Readonly<{ [Key in keyof ValidatedValue]: ValidatedValue[Key] }>>;
 
 export type ValueObjectConstructor<

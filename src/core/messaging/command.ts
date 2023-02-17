@@ -1,6 +1,6 @@
 import z  from "myzod";
 
-import { ServiceConfig, ServiceConstructor } from "../runner/types";
+import { ServiceConstructor } from "../runner/types";
 import { CoreNamingService, valueObjectClassFactory } from "../value-object";
 import { ValueObjectFQN } from "../value-object/types";
 import { messageSchema } from "./message";
@@ -11,9 +11,9 @@ export function commandMessageClassFactory<
   Ctor extends ServiceConstructor,
   Command extends keyof InstanceType<Ctor>,
 >(serviceCtor: Ctor, commandName: Command & string) {
-  const serviceConfig: ServiceConfig<Ctor> = CoreNamingService.getServiceConfig(serviceCtor.FQN);
+  const commandConfig = CoreNamingService.getCommandConfig(serviceCtor.FQN, commandName);
 
-  if (!serviceConfig?.commands?.[commandName]?.params) {
+  if (!commandConfig?.paramFQN) {
     throw new Error(`Service ${serviceCtor.FQN} does not have a command named ${commandName}`);
   }
 
@@ -23,7 +23,7 @@ export function commandMessageClassFactory<
       payload: z.object({
         serviceFQN: z.literal(serviceCtor.FQN),
         command: z.literal(commandName),
-        params: serviceConfig.commands[commandName].params.schema(),
+        param: CoreNamingService.getValueObjectConstructor(commandConfig.paramFQN).schema(),
       }),
     })),
   );

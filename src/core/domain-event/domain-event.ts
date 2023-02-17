@@ -1,8 +1,7 @@
-import z, { ObjectShape, AnyType, Infer, ObjectType, Type } from "myzod"
+import z, { Type } from "myzod"
 import { appVersionSchema, Compute, positiveIntegerSchema } from "../utils";
 import { valueObjectClassFactory } from "../value-object"
 import { ValueObjectFQN } from "../value-object/types";
-import { DomainEventConstructor } from "./types";
 
 export const baseDomainEventSchema = z.object({
   eventTypeSequence: positiveIntegerSchema,
@@ -15,7 +14,7 @@ export const baseDomainEventSchema = z.object({
 export function domainEventClassFactory<
   Domain extends string,
   Implementation extends string,
-  Payload extends any,
+  Payload,
 >(
   name: ValueObjectFQN<Domain, `DomainEvent::${Implementation}`>,
   payloadSchema: Type<Payload>
@@ -29,7 +28,7 @@ export function domainEventClassFactory<
 
   Object.defineProperty(cls, "from", {
     value: function(payload: Payload): InstanceType<typeof PayloadVO> {
-      // @ts-ignore
+      // @ts-expect-error - we know this is a valid payload
       return new PayloadVO({ payload });
     }
   })

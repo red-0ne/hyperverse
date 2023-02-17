@@ -5,7 +5,7 @@ import { StreamBoundary } from "../stream/stream-service";
 import { ValueObject } from "../value-object/types";
 import { domainEventClassFactory } from "./domain-event";
 import { DomainEventStreamService } from "./domain-event-stream";
-import { DomainEventConstructor, EventPayload } from "./types";
+import { EventPayload } from "./types";
 
 describe("Domain events", () => {
   class Ev1 extends domainEventClassFactory("Test::ValueObject::DomainEvent::E1", z.object({ val: z.string() })) {}
@@ -51,7 +51,7 @@ describe("Domain events", () => {
         payload: payload.toJSON().value as never,
       }));
 
-      // @ts-ignore
+      // @ts-expect-error index is already checked
       sequence.push(index);
       eventSequence[index]++;
       topicSequence++
@@ -85,7 +85,6 @@ describe("Domain events", () => {
   test("DomainEvent typing", async () => {
     const schema = z.object({ foo: z.string(), bar: z.number() });
     class Ev extends domainEventClassFactory("Test::ValueObject::DomainEvent::Ex", schema) {}
-    const t = Ev.validator()
 
     type EvExpectedType = Type<{
       eventTypeSequence: number,

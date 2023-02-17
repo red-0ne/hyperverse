@@ -1,4 +1,4 @@
-import z, { Infer, ObjectType } from "myzod";
+import { Infer, ObjectType } from "myzod";
 import { valueObjectClassFactory } from "../value-object";
 import { ErrorFQN, ErrorObjectConstructor } from "./types";
 

@@ -1,12 +1,12 @@
-import z, { ObjectShape } from "myzod";
+import z from "myzod";
 
 import { positiveIntegerSchema } from "../utils";
 import { valueObjectClassFactory } from "../value-object";
 import { FQN, ValueObjectConstructor, ValueObjectFQN } from "../value-object/types";
 
 const streamBoundarySchema = z.object({
-  start: positiveIntegerSchema.or(z.literal(Infinity)).or(z.null().map(_ => Infinity)),
-  end: positiveIntegerSchema.or(z.literal(Infinity)).or(z.null().map(_ => Infinity)),
+  start: positiveIntegerSchema.or(z.literal(Infinity)).or(z.null().map(() => Infinity)),
+  end: positiveIntegerSchema.or(z.literal(Infinity)).or(z.null().map(() => Infinity)),
 }).withPredicate(v => v.end >= v.start);
 
 export class StreamBoundary extends valueObjectClassFactory(

@@ -3,24 +3,44 @@ import { NetworkingServiceToken } from "../networking/networking";
 import { PeerUpdated } from "./events";
 import { CoreNamingService } from "./naming-service";
 import { PeerUpdatesStreamToken } from "./service-registry";
-import { PeerId, PeerInfo, Service, ServiceConfigs } from "./types";
+import { PeerId, PeerInfo, Service } from "./types";
 import { dependencyBundleFactory } from "../di-bundle";
 import { ErrorObject } from "../errors";
-import { DataMessage, CommandMessage, commandMessageFQN, dataMessageFQN } from "../messaging";
-import { CommandNotFound, InternalError, InvalidData, InvalidMessage, ServiceNotInjected, ServiceUnavailable, UnexpectedError, UnknownCommand, UnknownService, UnknownStreamId } from "./errors";
 import { StreamService } from "../stream/stream-service";
+import { FQN } from "../value-object";
+import { isValueObject } from "../value-object/value-object-factory";
 
-const IdentityServiceToken = new InjectionToken<{
-  getPeerInfo: () => PeerInfo,
-}>("IdentityService")
+import {
+  DataMessage,
+  CommandMessage,
+  commandMessageFQN,
+  dataMessageFQN
+} from "../messaging";
 
-export const LoggingStreamToken = new InjectionToken<StreamService>("Foo");
+import {
+  InvalidParameters,
+  CommandNotFound,
+  InternalError,
+  InvalidData,
+  InvalidMessage,
+  ServiceNotInjected,
+  ServiceUnavailable,
+  UnexpectedError,
+  UnknownCommand,
+  UnknownStreamId,
+  InvalidReturn
+} from "./errors";
+
+type ExposedCommands = Record<FQN, string[]>;
 
 export class RunnerDeps extends dependencyBundleFactory({
   peerUpdates: PeerUpdatesStreamToken,
-  logger: LoggingStreamToken,
+  logger: new InjectionToken<StreamService>("Foo"),
   networking: NetworkingServiceToken,
-  identity: IdentityServiceToken,
+  identity: new InjectionToken<{
+    getPeerInfo: () => PeerInfo,
+  }>("IdentityService"),
+  exposedServices: new InjectionToken<ExposedCommands>("ExposedServices"),
 }) {}
 
 @Injectable()
@@ -28,8 +48,6 @@ export class Runner {
   readonly #peers = new Map<PeerId["value"], PeerUpdated>();
   readonly #dataStreams = new Map<string, any>();
   readonly #peerInfo: PeerInfo;
-  readonly #exposedServices: { [key: string]: string[] } = {};
-  readonly #serviceConfigs: ServiceConfigs = {};
   readonly #deps: RunnerDeps;
 
   constructor(deps: RunnerDeps, @Inject(Injector) protected readonly injector: Injector) {
@@ -44,9 +62,16 @@ export class Runner {
   }
 
   protected async setupLocalServices() {
+    for (const [serviceName, serviceConfig] of Object.entries(this.#deps.exposedServices)) {
+      for (const commandName of serviceConfig) {
+        // @ts-expect-error serviceName is a FQN
+        CoreNamingService.exposeCommand(serviceName, commandName);
+      }
+    }
+
     await this.#deps.peerUpdates.emit(PeerUpdated.from({
       peerInfo: this.#peerInfo,
-      services: this.#exposedServices
+      services: this.#deps.exposedServices,
     }));
   }
 
@@ -94,22 +119,17 @@ export class Runner {
 
   protected async handleIncomingCommand(cmd: CommandMessage) {
     const { payload, origin, id } = cmd;
-    const { serviceFQN, command, params } = payload;
-    const exposedService = this.#exposedServices[serviceFQN];
+    const { serviceFQN, command, param } = payload;
+    const commandConfig = CoreNamingService.getCommandConfig(serviceFQN, command)
 
     let error: ErrorObject | undefined;
 
-    if (exposedService === undefined) {
-      error = new UnknownService({ serviceFQN });
-    }
-
-    const exposedMethodParams = exposedService[command];
-    if (exposedMethodParams === undefined) {
-      error = new UnknownCommand({ serviceFQN, command });
-    }
-
-    if (params.FQN !== exposedMethodParams) {
-      error = new ServiceUnavailable({ serviceFQN, command });
+    if (commandConfig === undefined) {
+      error = new UnknownCommand({ context: cmd });
+    } else if (!commandConfig.exposed) {
+      error = new ServiceUnavailable({ context: cmd });
+    } else if (!isValueObject(param) || commandConfig.paramFQN !== param.FQN) {
+      error = new InvalidParameters({ context: cmd, expectedFQN: commandConfig.paramFQN });
     }
 
     if (error !== undefined) {
@@ -117,7 +137,8 @@ export class Runner {
       return;
     }
 
-    const service: Service<typeof serviceFQN> = this.injector.get(serviceFQN);
+    const serviceToken = CoreNamingService.getServiceToken(serviceFQN);
+    const service: Service<typeof serviceFQN> = this.injector.get(serviceToken);
     if (service === undefined) {
       this.#deps.logger.emit(new ServiceNotInjected({ context: cmd }));
       this.#deps.networking.send(new InternalError(), id, origin);
@@ -133,9 +154,20 @@ export class Runner {
     }
 
     try {
-      // @ts-ignore - we know the command exists
-      const response = await service[command](params);
-      this.#deps.networking.send(response, id, origin);
+      // @ts-expect-error we know the command exists
+      const response = await service[command](param);
+      // @ts-expect-error commandConfig should already be checked earlier
+      const returnFQNs = commandConfig.returnFQNs;
+      if (isValueObject(response) && returnFQNs.includes(response.FQN)) {
+        this.#deps.networking.send(response, id, origin);
+      } else {
+        this.#deps.logger.emit(new InvalidReturn({
+          context: cmd,
+          expectedFQNs: returnFQNs,
+          actualFQN: response?.FQN,
+        }));
+        this.#deps.networking.send(new InternalError(), id, origin);
+      }
     } catch (e) {
       this.#deps.logger.emit(new UnexpectedError({ error: e, context: cmd }));
       this.#deps.networking.send(new InternalError(), id, origin);
