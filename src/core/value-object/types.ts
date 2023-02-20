@@ -8,27 +8,20 @@ export type FQN<
   Implementation extends string = string,
 > = `${Domain}::${Abstraction}::${Implementation}`;
 
-export type ValueObjectFQN<
-  Domain extends string = string,
-  Implementation extends string = string,
-> = `${Domain}::ValueObject::${Implementation}`;
+export type ValueObjectFQN<Domain extends string = string, Implementation extends string = string> = `${Domain}::ValueObject::${Implementation}`;
 
-export type ValueObject<
-  Name extends ValueObjectFQN = ValueObjectFQN,
-  ValidatedValue extends { [key: string]: any } = { [key: string]: any },
-> = Compute<{
-  readonly FQN: Name,
-  toJSON(): { [key in CoreNamingService["fqnKey"]]: Name } & { value: ValidatedValue },
-  validator(): ObjectType<any>,
-  properties(): (keyof ValidatedValue)[],
-} & Readonly<{ [Key in keyof ValidatedValue]: ValidatedValue[Key] }>>;
+export type ValueObject<Name extends ValueObjectFQN = ValueObjectFQN, ValidatedValue extends { [key: string]: any } = { [key: string]: any }> = Compute<
+  {
+    readonly FQN: Name;
+    toJSON(): { [key in CoreNamingService["fqnKey"]]: Name } & { value: ValidatedValue };
+    validator(): ObjectType<any>;
+    properties(): (keyof ValidatedValue)[];
+  } & Readonly<{ [Key in keyof ValidatedValue]: ValidatedValue[Key] }>
+>;
 
-export type ValueObjectConstructor<
-  N extends ValueObjectFQN = ValueObjectFQN,
-  X extends Record<string, any> = Record<string, any>,
-> = {
+export type ValueObjectConstructor<N extends ValueObjectFQN = ValueObjectFQN, X extends Record<string, any> = Record<string, any>> = {
   readonly FQN: N;
   validator(): ObjectType<X>;
   schema(): MappedType<ValueObject<N, X>>;
-  new(input: X): ValueObject<N, X>;
-}
+  new (input: X): ValueObject<N, X>;
+};

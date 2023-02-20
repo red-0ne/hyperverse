@@ -9,15 +9,8 @@ export class NamingService {
   #serviceConfigs: ServiceConfigs = {};
   #valueObjectConstructors: ValueObjectMap = new Map();
 
-  public registerCommand(
-    service: ServiceConstructor,
-    command: string,
-    paramValidator: ValueObjectConstructor | undefined,
-    returnValidator: DeferredReply,
-  ) {
-    const serviceConfig =
-      this.#serviceConfigs[service.FQN] ||
-      { commands: {}, token: service.token };
+  public registerCommand(service: ServiceConstructor, command: string, paramValidator: ValueObjectConstructor | undefined, returnValidator: DeferredReply) {
+    const serviceConfig = this.#serviceConfigs[service.FQN] || { commands: {}, token: service.token };
 
     if (serviceConfig.commands?.[command]) {
       throw new Error("Already registered");
@@ -25,10 +18,7 @@ export class NamingService {
 
     serviceConfig.commands[command] = {
       paramFQN: paramValidator?.FQN,
-      returnFQNs: [
-        returnValidator.success.FQN,
-        ...returnValidator.failures.map(f => f.FQN),
-      ],
+      returnFQNs: [returnValidator.success.FQN, ...returnValidator.failures.map(f => f.FQN)],
       exposed: false,
     };
   }
@@ -63,10 +53,7 @@ export class NamingService {
     this.#valueObjectConstructors.set(ctor.FQN, ctor);
   }
 
-  public getValueObjectConstructor<
-    Name extends ValueObjectFQN,
-    VOCtor extends ValueObjectConstructor<Name>,
-  >(name: Name): VOCtor {
+  public getValueObjectConstructor<Name extends ValueObjectFQN, VOCtor extends ValueObjectConstructor<Name>>(name: Name): VOCtor {
     const ctor = this.#valueObjectConstructors.get(name) as VOCtor | undefined;
 
     if (!ctor) {

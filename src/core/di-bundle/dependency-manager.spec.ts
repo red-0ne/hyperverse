@@ -7,7 +7,7 @@ describe("Dependency bundles", () => {
   test("creates dependency bundle", () => {
     const someDep = new InjectionToken<string>("description1");
 
-    class DependencyBundle extends dependencyBundleFactory({ "someLOL": someDep }) {}
+    class DependencyBundle extends dependencyBundleFactory({ someLOL: someDep }) {}
     const dependencyBundle = DependencyBundle.provide("someLOL").asValue("Foo").seal();
 
     const injector = ReflectiveInjector.resolveAndCreate(dependencyBundle);
@@ -25,7 +25,7 @@ describe("Dependency bundles", () => {
 
     class FooClass {
       public readonly FQN = "FooClass";
-      constructor (public lol: string) {}
+      constructor(public lol: string) {}
     }
 
     const someDep = new InjectionToken<string>("description1");
@@ -40,11 +40,14 @@ describe("Dependency bundles", () => {
       stillAnotherDep,
     }) {}
 
-    const dependencyBundle = DependencyBundle
-      .provide("someDep").asValue("Foo")
-      .provide("someOtherDep").asValue(12)
-      .provide("yetAnotherDep").asClass(SomeClass)
-      .provide("stillAnotherDep").asFactory(x => new FooClass(`${x}LOL`), [someDep])
+    const dependencyBundle = DependencyBundle.provide("someDep")
+      .asValue("Foo")
+      .provide("someOtherDep")
+      .asValue(12)
+      .provide("yetAnotherDep")
+      .asClass(SomeClass)
+      .provide("stillAnotherDep")
+      .asFactory(x => new FooClass(`${x}LOL`), [someDep])
       .seal();
 
     const injector = ReflectiveInjector.resolveAndCreate(dependencyBundle);
@@ -55,7 +58,7 @@ describe("Dependency bundles", () => {
       someOtherDep: number;
       yetAnotherDep: SomeClass;
       stillAnotherDep: FooClass;
-    }
+    };
 
     expectType<ExpectedBundleType>(bundle);
     expect(bundle.someDep).toStrictEqual("Foo");
@@ -77,15 +80,12 @@ describe("Dependency bundles", () => {
     }
 
     class Dep1 extends dependencyBundleFactory({ p: param, c: class1Token }) {}
-    const dep1 = Dep1
-      .provide("p").asValue("foo")
-      .provide("c").asClass(Class1)
-      .seal();
+    const dep1 = Dep1.provide("p").asValue("foo").provide("c").asClass(Class1).seal();
 
     @Injectable()
     class Class2 {
       public prop = "class2";
-      constructor (public dep: Dep1) {}
+      constructor(public dep: Dep1) {}
     }
 
     class Dep2 extends dependencyBundleFactory({ c: class2Token }) {}
@@ -93,7 +93,7 @@ describe("Dependency bundles", () => {
 
     @Injectable()
     class Service {
-      constructor (public dep: Dep2) {}
+      constructor(public dep: Dep2) {}
     }
 
     const injector = ReflectiveInjector.resolveAndCreate([dep2, dep1, Service]);
@@ -112,8 +112,10 @@ describe("Dependency bundles", () => {
     const depClassInjector = new InjectionToken<DepClass>("DepClass");
 
     class DepClass {
-      constructor (@Inject(configInjector) public config: string) {}
-      public sayHi(): string { return "hi"; }
+      constructor(@Inject(configInjector) public config: string) {}
+      public sayHi(): string {
+        return "hi";
+      }
     }
 
     @Injectable()
@@ -123,16 +125,18 @@ describe("Dependency bundles", () => {
       timestamp: otherConfigInjector,
     }) {}
 
-    const someDeps = SomeDeps
-      .provide("service").asClass(DepClass)
-      .provide("config").asValue("xyz")
-      .provide("timestamp").asFactory(() => new Date().getTime(), [])
+    const someDeps = SomeDeps.provide("service")
+      .asClass(DepClass)
+      .provide("config")
+      .asValue("xyz")
+      .provide("timestamp")
+      .asFactory(() => new Date().getTime(), [])
       .seal();
 
     @Injectable()
     class SomeService {
       public readonly foo = "bar";
-      constructor (public deps: SomeDeps) {}
+      constructor(public deps: SomeDeps) {}
     }
 
     const injector = ReflectiveInjector.resolveAndCreate([someDeps, SomeService]);
@@ -146,4 +150,4 @@ describe("Dependency bundles", () => {
     expect(service.deps.service.config).toStrictEqual("xyz");
     expect(service.deps.service.sayHi()).toStrictEqual("hi");
   });
-})
+});

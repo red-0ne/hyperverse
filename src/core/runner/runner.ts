@@ -10,12 +10,7 @@ import { ErrorObject } from "../errors";
 import { StreamService } from "../stream/stream-service";
 import { isValueObject } from "../value-object/value-object-factory";
 
-import {
-  DataMessage,
-  CommandMessage,
-  commandMessageFQN,
-  dataMessageFQN
-} from "../messaging";
+import { DataMessage, CommandMessage, commandMessageFQN, dataMessageFQN } from "../messaging";
 
 import {
   InvalidParameters,
@@ -28,7 +23,7 @@ import {
   UnexpectedError,
   UnknownCommand,
   UnknownStreamId,
-  InvalidReturn
+  InvalidReturn,
 } from "./errors";
 
 export class RunnerDeps extends dependencyBundleFactory({
@@ -36,7 +31,7 @@ export class RunnerDeps extends dependencyBundleFactory({
   logger: new InjectionToken<StreamService>("Foo"),
   networking: NetworkingServiceToken,
   // Have a proper impl for identity
-  identity: new InjectionToken<{ getPeerInfo: () => PeerInfo, }>("IdentityService"),
+  identity: new InjectionToken<{ getPeerInfo: () => PeerInfo }>("IdentityService"),
   exposedServices: ExposedServicesToken,
 }) {}
 
@@ -66,10 +61,12 @@ export class Runner {
       }
     }
 
-    await this.#deps.peerUpdates.emit(PeerUpdated.from({
-      peerInfo: this.#peerInfo,
-      services: this.#deps.exposedServices,
-    }));
+    await this.#deps.peerUpdates.emit(
+      PeerUpdated.from({
+        peerInfo: this.#peerInfo,
+        services: this.#deps.exposedServices,
+      }),
+    );
   }
 
   protected async subscribeToPeerUpdates() {
@@ -118,7 +115,7 @@ export class Runner {
     const { payload, origin, id } = cmd;
     const { serviceFQN, command, param } = payload;
     // Naming service should be injectable (?)
-    const commandConfig = CoreNamingService.getCommandConfig(serviceFQN, command)
+    const commandConfig = CoreNamingService.getCommandConfig(serviceFQN, command);
 
     let error: ErrorObject | undefined;
 
@@ -159,11 +156,13 @@ export class Runner {
       if (isValueObject(response) && returnFQNs.includes(response.FQN)) {
         this.#deps.networking.send(response, id, origin);
       } else {
-        this.#deps.logger.emit(new InvalidReturn({
-          context: cmd,
-          expectedFQNs: returnFQNs,
-          actualFQN: response?.FQN,
-        }));
+        this.#deps.logger.emit(
+          new InvalidReturn({
+            context: cmd,
+            expectedFQNs: returnFQNs,
+            actualFQN: response?.FQN,
+          }),
+        );
         this.#deps.networking.send(new InternalError(), id, origin);
       }
     } catch (e) {

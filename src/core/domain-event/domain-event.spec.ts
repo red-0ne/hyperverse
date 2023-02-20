@@ -20,7 +20,7 @@ describe("Domain events", () => {
   let topicSequence: number;
   let eventSequence: [number, number, number];
   let sequence: (0 | 1 | 2)[];
-  let eventStream: InstanceType<typeof streamEvents[number]>[] = [];
+  let eventStream: InstanceType<(typeof streamEvents)[number]>[] = [];
 
   beforeEach(() => {
     strVal = ".";
@@ -34,7 +34,7 @@ describe("Domain events", () => {
   class Stream1 implements DomainEventStreamService {
     public readonly FQN = "Test::Stream::DomainEvent::Stream1";
     public readonly ids = streamEvents;
-    public lastEvent?: InstanceType<typeof streamEvents[number]>;
+    public lastEvent?: InstanceType<(typeof streamEvents)[number]>;
 
     public async emit(payload: EventPayload<Stream1>): Promise<void> {
       const index = this.ids.findIndex(ctor => ctor.FQN + "::Payload" === payload.FQN);
@@ -43,18 +43,20 @@ describe("Domain events", () => {
         throw new Error("Cannot find event constructor for this payload");
       }
 
-      eventStream.push(new ctor({
-        eventTypeSequence: eventSequence[index] as number,
-        topicSequence: topicSequence,
-        timestamp: new Date().getTime(),
-        appVersion: "0.0.0",
-        payload: payload.toJSON().value as never,
-      }));
+      eventStream.push(
+        new ctor({
+          eventTypeSequence: eventSequence[index] as number,
+          topicSequence: topicSequence,
+          timestamp: new Date().getTime(),
+          appVersion: "0.0.0",
+          payload: payload.toJSON().value as never,
+        }),
+      );
 
       // @ts-expect-error index is already checked
       sequence.push(index);
       eventSequence[index]++;
-      topicSequence++
+      topicSequence++;
     }
 
     public async *stream(args: StreamBoundary): AsyncIterable<InstanceType<Stream1["ids"][number]>> {
@@ -66,7 +68,7 @@ describe("Domain events", () => {
 
         const lastEvent = eventStream[current % eventStream.length];
         if (lastEvent === undefined) {
-          throw Error("should not happen")
+          throw Error("should not happen");
         }
         this.lastEvent = lastEvent;
         yield await lastEvent;
@@ -87,15 +89,15 @@ describe("Domain events", () => {
     class Ev extends domainEventClassFactory("Test::ValueObject::DomainEvent::Ex", schema) {}
 
     type EvExpectedType = Type<{
-      eventTypeSequence: number,
-      topicSequence: number,
-      timestamp: number,
-      payload: Infer<typeof schema>,
-      appVersion: string,
+      eventTypeSequence: number;
+      topicSequence: number;
+      timestamp: number;
+      payload: Infer<typeof schema>;
+      appVersion: string;
     }>;
 
-    Ev.schema()
-    Ev.validator().shape().payload
+    Ev.schema();
+    Ev.validator().shape().payload;
 
     expectType<"Test::ValueObject::DomainEvent::Ex">(Ev.FQN);
     expectType<MappedType<ValueObject<"Test::ValueObject::DomainEvent::Ex", Infer<EvExpectedType>>>>(Ev.schema());
@@ -114,12 +116,13 @@ describe("Domain events", () => {
     expectType<number>(e.topicSequence);
     expectType<number>(e.timestamp);
     expectType<Infer<typeof schema>>(e.payload);
-    expectType<("eventTypeSequence"|"topicSequence"|"timestamp"|"payload"|"appVersion")[]>(e.properties());
-    expectType<() => {
-      [CoreNamingService.fqnKey]: "Test::ValueObject::DomainEvent::Ex",
-      value: Infer<EvExpectedType>,
-    }>(e.toJSON);
-
+    expectType<("eventTypeSequence" | "topicSequence" | "timestamp" | "payload" | "appVersion")[]>(e.properties());
+    expectType<
+      () => {
+        [CoreNamingService.fqnKey]: "Test::ValueObject::DomainEvent::Ex";
+        value: Infer<EvExpectedType>;
+      }
+    >(e.toJSON);
 
     expect(Ev.FQN).toEqual("Test::ValueObject::DomainEvent::Ex");
     expect(e.payload).toEqual({ foo: "suu", bar: 12 });
@@ -135,13 +138,13 @@ describe("Domain events", () => {
         timestamp: new Date().getTime(),
       } as const;
 
-      switch(v) {
+      switch (v) {
         case 0:
-          return new streamEvents[v]({ ...baseValue, payload: { val: strVal += "."} });
+          return new streamEvents[v]({ ...baseValue, payload: { val: (strVal += ".") } });
         case 1:
           return new streamEvents[v]({ ...baseValue, payload: { val: ++numVal } });
         case 2:
-          return new streamEvents[v]({ ...baseValue, payload: { val: litVal = litVal === "a" ? "b" : "a" } });
+          return new streamEvents[v]({ ...baseValue, payload: { val: (litVal = litVal === "a" ? "b" : "a") } });
       }
     });
 
@@ -154,7 +157,7 @@ describe("Domain events", () => {
     expect(s1.lastEvent).toEqual(undefined);
     expect(s1.ids.length).toEqual(3);
 
-    for await (const e of s1.stream(new StreamBoundary({start: 0, end: 9}))) {
+    for await (const e of s1.stream(new StreamBoundary({ start: 0, end: 9 }))) {
       expectType<number>(e.eventTypeSequence);
       expectType<number>(e.topicSequence);
       expectType<number>(e.timestamp);
@@ -179,11 +182,7 @@ describe("Domain events", () => {
   test("produce events", async () => {
     const s1 = new Stream1();
 
-    const requests = [
-      Ev1.from({ val: "x" }),
-      Ev2.from({ val: 2 }),
-      Ev3.from({ val: "b" })
-    ] as const;
+    const requests = [Ev1.from({ val: "x" }), Ev2.from({ val: 2 }), Ev3.from({ val: "b" })] as const;
 
     await s1.emit(requests[0]);
     await s1.emit(requests[1]);
@@ -197,7 +196,7 @@ describe("Domain events", () => {
       if (req === undefined) {
         throw new Error("should not happen");
       }
-      expect(e.FQN + "::Payload").toEqual(req.FQN)
+      expect(e.FQN + "::Payload").toEqual(req.FQN);
       expect(e.payload).toEqual(req.toJSON().value);
       expect(e.topicSequence).toEqual(i);
       expect(e.eventTypeSequence).toEqual(0);

@@ -7,10 +7,10 @@ import { messageSchema } from "./message";
 
 export const dataMessageFQN: ValueObjectFQN<"Core", "Message::Data::"> = "Core::ValueObject::Message::Data::";
 
-export function dataMessageClassFactory<
-  Ctor extends ServiceConstructor,
-  Command extends keyof InstanceType<Ctor>,
->(serviceCtor: Ctor, commandName: Command & string) {
+export function dataMessageClassFactory<Ctor extends ServiceConstructor, Command extends keyof InstanceType<Ctor>>(
+  serviceCtor: Ctor,
+  commandName: Command & string,
+) {
   const serviceConfig = CoreNamingService.getCommandConfig(serviceCtor.FQN, commandName);
   if (!serviceConfig) {
     throw new Error(`Service ${serviceCtor.FQN} does not have a command named ${commandName}`);
@@ -20,18 +20,17 @@ export function dataMessageClassFactory<
 
   return valueObjectClassFactory(
     `${dataMessageFQN}${serviceCtor.FQN}::${commandName}`,
-    messageSchema.and(z.object({
-      payload: z.union(possibleReturns
-        .map(r => CoreNamingService.getValueObjectConstructor(r).schema())
-      ),
-    })),
+    messageSchema.and(
+      z.object({
+        payload: z.union(possibleReturns.map(r => CoreNamingService.getValueObjectConstructor(r).schema())),
+      }),
+    ),
   );
 }
 
-export type DataMessageConstructor<
-  Ctor extends ServiceConstructor,
-  Command extends keyof InstanceType<Ctor>,
-> = ReturnType<typeof dataMessageClassFactory<Ctor, Command>>;
+export type DataMessageConstructor<Ctor extends ServiceConstructor, Command extends keyof InstanceType<Ctor>> = ReturnType<
+  typeof dataMessageClassFactory<Ctor, Command>
+>;
 
 export type DataMessage<
   Ctor extends ServiceConstructor = ServiceConstructor,
