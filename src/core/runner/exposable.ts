@@ -3,8 +3,8 @@ import { CoreNamingService } from "../value-object";
 import { isValueObject } from "../value-object/value-object-factory";
 
 export function Exposable(target: any, key: string) {
-  const params = Reflect.getMetadata('design:paramtypes', target, key);
-  const returnType = Reflect.getMetadata('design:returntype', target, key);
+  const params = Reflect.getMetadata("design:paramtypes", target, key);
+  const returnType = Reflect.getMetadata("design:returntype", target, key);
 
   // maybe we should emit alerts or logs instead of just ignoring the command
 

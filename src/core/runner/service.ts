@@ -7,10 +7,10 @@ import { FQN, ValueObject } from "../value-object";
 import { ValueObjectFQN } from "../value-object/types";
 
 export type Service<Name extends FQN = FQN> = {
-  [method: string]: (args?: ValueObject) => DeferredReply,
+  [method: string]: (args?: ValueObject) => DeferredReply;
 } & {
-  readonly FQN: Name,
-  readonly ready: Promise<void>,
+  readonly FQN: Name;
+  readonly ready: Promise<void>;
 };
 
 export type ServiceConstructor<
@@ -18,10 +18,10 @@ export type ServiceConstructor<
   Svc extends Service<Name> = Service<Name>,
   Args extends DependencyBundleTokenMap = DependencyBundleTokenMap,
 > = {
-  deps: Constructor<DependencyBundleTokenMap>,
-  token: ServiceToken<Svc>
-  new(args: Args): Svc,
-  FQN: Name,
+  deps: Constructor<DependencyBundleTokenMap>;
+  token: ServiceToken<Svc>;
+  new (args: Args): Svc;
+  FQN: Name;
 };
 
 export class ServiceToken<S extends Service = Service> extends InjectionToken<S> {
@@ -30,16 +30,22 @@ export class ServiceToken<S extends Service = Service> extends InjectionToken<S>
   }
 }
 
-export type CommandsConfig = Record<string, {
-  paramFQN: ValueObjectFQN | ErrorObjectFQN | undefined,
-  returnFQNs: ValueObjectFQN[],
-  exposed: boolean,
-}>;
+export type CommandsConfig = Record<
+  string,
+  {
+    paramFQN: ValueObjectFQN | ErrorObjectFQN | undefined;
+    returnFQNs: ValueObjectFQN[];
+    exposed: boolean;
+  }
+>;
 
-export type ServiceConfigs = Record<FQN, {
-  commands: CommandsConfig,
-  token: ServiceToken,
-}>;
+export type ServiceConfigs = Record<
+  FQN,
+  {
+    commands: CommandsConfig;
+    token: ServiceToken;
+  }
+>;
 
 export type ExposedServices = Record<FQN, string[]>;
 export const ExposedServicesToken = new InjectionToken<ExposedServices>("ExposedServices");

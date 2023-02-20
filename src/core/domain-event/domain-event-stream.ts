@@ -17,4 +17,4 @@ export type DomainEventStreamService<
   emit(data: Data): Promise<void>;
   stream(limit: StreamBoundary): AsyncIterable<Data>;
   ready(): Promise<void>;
-}
+};

@@ -1,4 +1,4 @@
-import z from "myzod"
+import z from "myzod";
 import { domainEventClassFactory } from "../domain-event/domain-event";
 import { PeerInfo } from "./types";
 

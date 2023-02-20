@@ -62,10 +62,7 @@ export class ServiceNotInjected extends errorObjectClassFactory(
   }),
 ) {}
 
-export class InternalError extends errorObjectClassFactory(
-  "Core::ValueObject::Error::InternalError",
-  z.object({}).allowUnknownKeys(),
-) {
+export class InternalError extends errorObjectClassFactory("Core::ValueObject::Error::InternalError", z.object({}).allowUnknownKeys()) {
   constructor() {
     super({});
   }

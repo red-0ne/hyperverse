@@ -1,4 +1,4 @@
-import { Injector, Provider } from "injection-js"
+import { Injector, Provider } from "injection-js";
 import { Constructor } from "../utils";
 import { DependencyBundleTokenMap, InferDep, UnwrapIT, UnwrapITs } from "./types";
 
@@ -6,7 +6,7 @@ function makeTokenProvider<K extends keyof T & string, T extends DependencyBundl
   bundle: Constructor<unknown>,
   providers: Record<string, Provider>,
   key: K,
-  bundleMap: T
+  bundleMap: T,
 ) {
   const dep = {
     asValue(value: UnwrapIT<T[K]>) {
@@ -25,7 +25,7 @@ function makeTokenProvider<K extends keyof T & string, T extends DependencyBundl
       return {
         provide: <R extends Exclude<Extract<keyof T, string>, K>>(key: R) => makeTokenProvider(bundle, providers, key, bundleMap),
         seal() {
-          const sealedBundle = Object.values(providers)
+          const sealedBundle = Object.values(providers);
           sealedBundle.push({
             provide: bundle,
             useFactory: (injector: Injector) => new bundle(injector),
@@ -33,9 +33,9 @@ function makeTokenProvider<K extends keyof T & string, T extends DependencyBundl
           });
 
           return sealedBundle;
-        }
-      }
-    }
+        },
+      };
+    },
   } as const;
 
   return dep as Exclude<typeof dep, "makeProvider">;
