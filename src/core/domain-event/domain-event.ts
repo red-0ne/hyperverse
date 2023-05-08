@@ -20,7 +20,7 @@ export function domainEventClassFactory<
   name: Name,
   payloadSchema: PayloadValidator,
 ) {
-  // TODO remove as
+  // TODO remove as?
   const payloadFQN = `${name}::Payload` as PayloadFQN;
 
   const schema = z.object({
@@ -31,7 +31,7 @@ export function domainEventClassFactory<
   const PayloadVO = valueObjectClassFactory(payloadFQN, payloadSchema);
   const cls = valueObjectClassFactory(name, schema);
 
-  Object.defineProperty(cls, "from", {
+  Object.defineProperty(cls, "withPayload", {
     value: function(payload: Payload): InstanceType<typeof PayloadVO> {
       return new PayloadVO(payload);
     }

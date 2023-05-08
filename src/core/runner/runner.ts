@@ -62,7 +62,7 @@ export class Runner {
     }
 
     await this.#deps.peerUpdates.emit(
-      PeerUpdated.from({
+      PeerUpdated.withPayload({
         peerInfo: this.#peerInfo,
         services: this.#deps.exposedServices,
       }),

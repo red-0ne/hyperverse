@@ -15,7 +15,7 @@ export type DomainEventConstructor<
   Name extends DomainEventFQN = DomainEventFQN,
   Shape extends DomainEventShape = any,
 > = Compute<{
-  from<P extends Shape["payload"], DEP extends DomainEventPayload<Name, P>>(p: P): DEP;
+  withPayload<P extends Shape["payload"], DEP extends DomainEventPayload<Name, P>>(p: P): DEP;
 } & ValueObjectConstructor<Name, Shape>>;
 
 export type DomainEvent<

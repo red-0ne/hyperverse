@@ -10,7 +10,7 @@ export type PeerUpdatesStream = Compute<
   DomainEventStreamService<typeof fqn> & {
     FQN: typeof fqn;
     ids: [typeof PeerUpdated];
-    emit(payload: ReturnType<(typeof PeerUpdated)["from"]>): Promise<void>;
+    emit(payload: ReturnType<(typeof PeerUpdated)["withPayload"]>): Promise<void>;
     stream(limit?: StreamBoundary): AsyncIterable<PeerUpdated>;
     ready(): Promise<void>;
   }

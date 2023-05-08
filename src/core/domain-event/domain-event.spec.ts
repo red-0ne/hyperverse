@@ -188,9 +188,9 @@ describe("Domain events", () => {
     const s1 = new Stream1();
 
     const requests = [
-      Ev1.from({ val: "x" }),
-      Ev2.from({ val: 2 }),
-      Ev3.from({ val: "b" }),
+      Ev1.withPayload({ val: "x" }),
+      Ev2.withPayload({ val: 2 }),
+      Ev3.withPayload({ val: "b" }),
     ] as const;
 
     await s1.emit(requests[0]);
