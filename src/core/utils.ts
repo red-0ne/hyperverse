@@ -5,7 +5,9 @@ export type Constructor<Instance, Arguments extends any[] = any[]> = {
 };
 
 // eslint-disable-next-line @typescript-eslint/ban-types
-export type Compute<A> = A extends Function ? A : { [K in keyof A]: A[K] } & unknown;
+export type Compute<A> = A extends Function
+  ? A
+  : { [K in keyof A]: A[K] } & unknown;
 
 export const positiveIntegerSchema = z
   .number()

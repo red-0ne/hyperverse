@@ -1,6 +1,5 @@
-import { DeferredReply } from "../messaging";
-import { CoreNamingService } from "../value-object";
 import { isValueObject } from "../value-object/value-object-factory";
+import { CoreNamingService } from "./naming-service";
 
 export function Exposable(target: any, key: string) {
   const params = Reflect.getMetadata("design:paramtypes", target, key);
@@ -16,7 +15,7 @@ export function Exposable(target: any, key: string) {
     return;
   }
 
-  if (!(returnType?.prototype instanceof DeferredReply)) {
+  if (isValueObject(!returnType?.prototype)) {
     return;
   }
 

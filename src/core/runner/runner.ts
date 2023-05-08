@@ -4,7 +4,7 @@ import { PeerUpdated } from "./events";
 import { CoreNamingService } from "./naming-service";
 import { PeerUpdatesStreamToken } from "./service-registry";
 import { PeerId, PeerInfo } from "./types";
-import { ExposedServicesToken, Service } from "./service";
+import { ExposedServicesToken, ExposableService } from "./service";
 import { dependencyBundleFactory } from "../di-bundle";
 import { ErrorObject } from "../errors";
 import { StreamService } from "../stream/stream-service";
@@ -133,17 +133,21 @@ export class Runner {
     }
 
     const serviceToken = CoreNamingService.getServiceToken(serviceFQN);
-    const service: Service<typeof serviceFQN> = this.injector.get(serviceToken);
+    const service: ExposableService<typeof serviceFQN> = this.injector.get(serviceToken);
     if (service === undefined) {
-      this.#deps.logger.emit(new ServiceNotInjected({ context: cmd }));
-      this.#deps.networking.send(new InternalError(), id, origin);
+      const err = new ServiceNotInjected({ context: cmd });
+      this.#deps.logger.emit(err);
+      // should have ref pointing to something that references the original error
+      this.#deps.networking.send(new InternalError({ ref: err }), id, origin);
 
       return;
     }
 
     if (typeof service[command] !== "function") {
-      this.#deps.logger.emit(new CommandNotFound({ context: cmd }));
-      this.#deps.networking.send(new InternalError(), id, origin);
+      const err = new CommandNotFound({ context: cmd });
+      this.#deps.logger.emit(err);
+      // should have ref pointing to something that references the original error
+      this.#deps.networking.send(new InternalError({ ref: err }), id, origin);
 
       return;
     }
@@ -153,21 +157,22 @@ export class Runner {
       const response = await service[command](param);
       // @ts-expect-error commandConfig should already be checked earlier
       const returnFQNs = commandConfig.returnFQNs;
+
       if (isValueObject(response) && returnFQNs.includes(response.FQN)) {
         this.#deps.networking.send(response, id, origin);
       } else {
-        this.#deps.logger.emit(
-          new InvalidReturn({
-            context: cmd,
-            expectedFQNs: returnFQNs,
-            actualFQN: response?.FQN,
-          }),
-        );
-        this.#deps.networking.send(new InternalError(), id, origin);
+        const err = new InvalidReturn({
+          context: cmd,
+          expectedFQNs: [...returnFQNs],
+          actualFQN: response?.FQN,
+        });
+        this.#deps.logger.emit(err);
+        this.#deps.networking.send(new InternalError({ ref: err }), id, origin);
       }
     } catch (e) {
-      this.#deps.logger.emit(new UnexpectedError({ error: e, context: cmd }));
-      this.#deps.networking.send(new InternalError(), id, origin);
+      const err = new UnexpectedError({ error: e, context: cmd });
+      this.#deps.logger.emit(err);
+      this.#deps.networking.send(new InternalError({ ref: err }), id, origin);
     }
   }
 }

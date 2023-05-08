@@ -1,7 +1,9 @@
 import z from "myzod";
 import { domainEventClassFactory } from "../domain-event/domain-event";
+import { Register } from "../value-object/register";
 import { PeerInfo } from "./types";
 
+@Register
 export class PeerUpdated extends domainEventClassFactory(
   "Core::ValueObject::DomainEvent::PeerUpdated",
   z.object({

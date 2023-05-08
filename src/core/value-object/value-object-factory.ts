@@ -4,46 +4,55 @@ import { CoreNamingService } from "../runner/naming-service";
 
 const root = z.unknown();
 
-// we use this to create a root constructor for value objects so we can use instanceof
 // eslint-disable-next-line @typescript-eslint/no-empty-function
 function valueObjectRootConstructor() {}
+// eslint-disable-next-line @typescript-eslint/no-empty-function
+function errorObjectRootConstructor() {}
+errorObjectRootConstructor.prototype = Error.prototype;
+// eslint-disable-next-line @typescript-eslint/no-empty-function
+function deferredReplyRootConstructor() {}
+deferredReplyRootConstructor.prototype = Promise.prototype;
 
 export function isValueObject(value: any): value is ValueObject {
-  return value instanceof valueObjectRootConstructor;
+  return value instanceof valueObjectRootConstructor ||
+    value instanceof errorObjectRootConstructor;
 }
 
-export function valueObjectClassFactory<Name extends ValueObjectFQN, Validator extends ObjectType<any>>(
-  name: Name,
-  validator: Validator,
-): ValueObjectConstructor<Name, Infer<Validator>> {
-  const ValueObjectConstructor = function (this: { __parsedValue__: Infer<Validator> }, input: Infer<Validator>) {
-    const extractedInput = input?.value && input?.[CoreNamingService.fqnKey] === name ? input.value : input;
+export function isDeferredReply(value: any): value is ValueObject {
+  return value instanceof deferredReplyRootConstructor;
+}
+
+export function valueObjectClassFactory<
+  Name extends ValueObjectFQN,
+  Validator extends ObjectType<any>,
+>(name: Name, validator: Validator): ValueObjectConstructor<Name, Infer<Validator>> {
+  const ValueObjectConstructor = function(
+    this: { __parsedValue__: Infer<Validator> },
+    input: Infer<Validator>
+  ) {
+    let extractedInput = ( input?.value && input?.[CoreNamingService.fqnKey] === name)
+      ? input.value
+      : input;
+
+    if (isValueObject(extractedInput)) {
+      extractedInput = extractedInput.value();
+    }
 
     this.__parsedValue__ = validator.parse(extractedInput) as Infer<Validator>;
   } as unknown as ValueObjectConstructor<Name, Infer<Validator>>;
 
   Object.defineProperties(ValueObjectConstructor, {
-    validator: {
-      value: function () {
-        return validator;
-      },
-    },
-    schema: {
-      value: function () {
-        return root.map(v => new ValueObjectConstructor(v as any));
-      },
-    },
-    FQN: {
-      get() {
-        return name;
-      },
-    },
+    validator: { value: function() { return validator; } },
+    FQN: { get() { return name; } },
+    schema: { value: function() {
+      return root.map(v => {
+        const ctor = CoreNamingService.getValueObjectConstructor(name);
+        return new ctor(v as any);
+      });
+    } },
   });
 
   ValueObjectConstructor.prototype = Object.create(buildPrototype(name, validator), { constructor: { value: ValueObjectConstructor } });
-
-  // @ts-expect-error we suppress type too complex error
-  CoreNamingService.registerValueObject(ValueObjectConstructor);
 
   return ValueObjectConstructor;
 }
@@ -54,25 +63,14 @@ function buildPrototype<Name extends ValueObjectFQN, Value extends { [key: strin
 ) {
   const properties = Object.keys(validator.shape());
 
-  const proto = Object.create(valueObjectRootConstructor.prototype, {
-    properties: {
-      value: function () {
-        return properties;
-      },
-      enumerable: true,
-    },
-    validator: {
-      value: function () {
-        validator;
-      },
-      enumerable: true,
-    },
-    FQN: {
-      get() {
-        return name;
-      },
-      enumerable: true,
-    },
+  const cmp = name.split("::");
+  const currentProto = cmp?.[1] === "ValueObject" && cmp?.[2] === "Error"
+    ? errorObjectRootConstructor.prototype
+    : valueObjectRootConstructor.prototype;
+  const proto = Object.create(currentProto, {
+    properties: { value: function() { return properties; } },
+    validator: { value: function() { return validator; } },
+    FQN: { value: name, enumerable: false },
     toJSON: {
       value: function (this: { __parsedValue__: Value }) {
         return {
@@ -80,14 +78,12 @@ function buildPrototype<Name extends ValueObjectFQN, Value extends { [key: strin
           value: this.__parsedValue__,
         };
       },
-      enumerable: true,
     },
     value: {
       value: function (this: { __parsedValue__: Value }) {
         // use structuredClone ?
         return this.__parsedValue__;
       },
-      enumerable: true,
     },
   });
 

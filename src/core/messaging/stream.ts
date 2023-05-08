@@ -1,6 +1,6 @@
 import { ErrorObject, ErrorObjectConstructor } from "../errors";
 import { StreamService } from "../stream/stream-service";
-import { ValueObject, ValueObjectConstructor } from "../value-object";
+import { ValueObject } from "../value-object";
 
 export abstract class StreamReply<
   Success extends StreamService = StreamService,

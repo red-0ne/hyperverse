@@ -1,33 +1,41 @@
-import z, { Type } from "myzod";
-import { appVersionSchema, Compute, positiveIntegerSchema } from "../utils";
-import { valueObjectClassFactory } from "../value-object";
-import { ValueObjectFQN } from "../value-object/types";
+import z, { ObjectType, Infer } from "myzod"
+import { appVersionSchema, positiveIntegerSchema } from "../utils";
+import { valueObjectClassFactory } from "../value-object"
+import { DomainEventConstructor, DomainEventFQN, DomainEventPayload, DomainEventPayloadConstructor, DomainEventPayloadFQN, DomainEventShape } from "./types";
 
 export const baseDomainEventSchema = z.object({
   eventTypeSequence: positiveIntegerSchema,
   topicSequence: positiveIntegerSchema,
-  timestamp: positiveIntegerSchema, //.map(v => new Date(v)),
+  timestamp: positiveIntegerSchema,
   appVersion: appVersionSchema,
   payload: z.unknown(),
 });
 
-export function domainEventClassFactory<Domain extends string, Implementation extends string, Payload>(
-  name: ValueObjectFQN<Domain, `DomainEvent::${Implementation}`>,
-  payloadSchema: Type<Payload>,
+export function domainEventClassFactory<
+  Name extends DomainEventFQN,
+  PayloadFQN extends DomainEventPayloadFQN<Name>,
+  PayloadValidator extends ObjectType<any>,
+  Payload extends Infer<PayloadValidator>,
+>(
+  name: Name,
+  payloadSchema: PayloadValidator,
 ) {
-  const payloadFQN = `${name as ValueObjectFQN}::Payload` as const;
-  const embeddedPayloadSchema = z.object({ payload: payloadSchema });
-  const schema = baseDomainEventSchema.and(embeddedPayloadSchema);
+  // TODO remove as
+  const payloadFQN = `${name}::Payload` as PayloadFQN;
 
-  const PayloadVO = valueObjectClassFactory(payloadFQN, embeddedPayloadSchema);
+  const schema = z.object({
+    ...baseDomainEventSchema.shape(),
+    payload: payloadSchema,
+  });
+
+  const PayloadVO = valueObjectClassFactory(payloadFQN, payloadSchema);
   const cls = valueObjectClassFactory(name, schema);
 
   Object.defineProperty(cls, "from", {
-    value: function (payload: Payload): InstanceType<typeof PayloadVO> {
-      // @ts-expect-error - we know this is a valid payload
-      return new PayloadVO({ payload });
-    },
+    value: function(payload: Payload): InstanceType<typeof PayloadVO> {
+      return new PayloadVO(payload);
+    }
   });
 
-  return cls as Compute<typeof cls & { from(payload: Payload): InstanceType<typeof PayloadVO> }>;
+  return cls as unknown as DomainEventConstructor<Name, DomainEventShape<Payload>>;
 }

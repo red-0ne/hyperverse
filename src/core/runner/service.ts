@@ -1,21 +1,18 @@
 import { InjectionToken } from "injection-js";
 import { DependencyBundleTokenMap } from "../di-bundle/types";
 import { ErrorObjectFQN } from "../errors";
-import { DeferredReply } from "../messaging";
 import { Constructor } from "../utils";
-import { FQN, ValueObject } from "../value-object";
+import { FQN } from "../value-object";
 import { ValueObjectFQN } from "../value-object/types";
 
-export type Service<Name extends FQN = FQN> = {
-  [method: string]: (args?: ValueObject) => DeferredReply;
-} & {
-  readonly FQN: Name;
-  readonly ready: Promise<void>;
-};
+export type ExposableService<Name extends FQN = FQN, Commands extends string = any> = {
+  readonly FQN: Name,
+  readonly ready: Promise<void>,
+}
 
-export type ServiceConstructor<
+export type ExposableServiceConstructor<
   Name extends FQN = FQN,
-  Svc extends Service<Name> = Service<Name>,
+  Svc extends ExposableService<Name> = ExposableService<Name>,
   Args extends DependencyBundleTokenMap = DependencyBundleTokenMap,
 > = {
   deps: Constructor<DependencyBundleTokenMap>;
@@ -24,20 +21,17 @@ export type ServiceConstructor<
   FQN: Name;
 };
 
-export class ServiceToken<S extends Service = Service> extends InjectionToken<S> {
+export class ServiceToken<S extends ExposableService = ExposableService> extends InjectionToken<S> {
   constructor(public readonly name: FQN) {
     super(name);
   }
 }
 
-export type CommandsConfig = Record<
-  string,
-  {
-    paramFQN: ValueObjectFQN | ErrorObjectFQN | undefined;
-    returnFQNs: ValueObjectFQN[];
-    exposed: boolean;
-  }
->;
+export type CommandsConfig = Record<string, {
+  paramFQN: ValueObjectFQN | undefined,
+  returnFQNs: Readonly<[ValueObjectFQN, ...ErrorObjectFQN[]]>,
+  exposed: boolean,
+}>;
 
 export type ServiceConfigs = Record<
   FQN,

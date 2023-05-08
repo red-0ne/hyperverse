@@ -1,6 +1,8 @@
 import z from "myzod";
 import { errorObjectClassFactory } from "../errors";
+import { Register } from "../value-object/register";
 
+@Register
 export class UnknownStreamId extends errorObjectClassFactory(
   "Core::ValueObject::Error::UnknownStreamId",
   z.object({
@@ -8,6 +10,7 @@ export class UnknownStreamId extends errorObjectClassFactory(
   }),
 ) {}
 
+@Register
 export class InvalidData extends errorObjectClassFactory(
   "Core::ValueObject::Error::InvalidData",
   z.object({
@@ -16,6 +19,7 @@ export class InvalidData extends errorObjectClassFactory(
   }),
 ) {}
 
+@Register
 export class UnknownCommand extends errorObjectClassFactory(
   "Core::ValueObject::Error::UnknownCommand",
   z.object({
@@ -23,6 +27,7 @@ export class UnknownCommand extends errorObjectClassFactory(
   }),
 ) {}
 
+@Register
 export class ServiceUnavailable extends errorObjectClassFactory(
   "Core::ValueObject::Error::ServiceUnavailable",
   z.object({
@@ -30,6 +35,7 @@ export class ServiceUnavailable extends errorObjectClassFactory(
   }),
 ) {}
 
+@Register
 export class InvalidParameters extends errorObjectClassFactory(
   "Core::ValueObject::Error::BadParameters",
   z.object({
@@ -38,6 +44,7 @@ export class InvalidParameters extends errorObjectClassFactory(
   }),
 ) {}
 
+@Register
 export class InvalidReturn extends errorObjectClassFactory(
   "Core::ValueObject::Error::BadReturn",
   z.object({
@@ -47,6 +54,7 @@ export class InvalidReturn extends errorObjectClassFactory(
   }),
 ) {}
 
+@Register
 export class UnexpectedError extends errorObjectClassFactory(
   "Core::ValueObject::Error::UnexpectedError",
   z.object({
@@ -55,6 +63,7 @@ export class UnexpectedError extends errorObjectClassFactory(
   }),
 ) {}
 
+@Register
 export class ServiceNotInjected extends errorObjectClassFactory(
   "Core::ValueObject::Error::ServiceNotInjected",
   z.object({
@@ -62,12 +71,15 @@ export class ServiceNotInjected extends errorObjectClassFactory(
   }),
 ) {}
 
-export class InternalError extends errorObjectClassFactory("Core::ValueObject::Error::InternalError", z.object({}).allowUnknownKeys()) {
-  constructor() {
-    super({});
-  }
-}
+@Register
+export class InternalError extends errorObjectClassFactory(
+  "Core::ValueObject::Error::InternalError",
+  z.object({
+    ref: z.unknown(),
+  }),
+) { }
 
+@Register
 export class InvalidMessage extends errorObjectClassFactory(
   "Core::ValueObject::Error::InvalidMessage",
   z.object({
@@ -75,6 +87,7 @@ export class InvalidMessage extends errorObjectClassFactory(
   }),
 ) {}
 
+@Register
 export class CommandNotFound extends errorObjectClassFactory(
   "Core::ValueObject::Error::CommandNotFound",
   z.object({

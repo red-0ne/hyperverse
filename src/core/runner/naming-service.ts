@@ -1,7 +1,7 @@
-import { DeferredReply } from "../messaging";
 import { FQN, ValueObjectConstructor, ValueObjectFQN } from "../value-object/types";
 import { ValueObjectMap } from "./types";
-import { Service, CommandsConfig, ServiceConfigs, ServiceConstructor, ServiceToken } from "./service";
+import { ExposableService, CommandsConfig, ServiceConfigs, ExposableServiceConstructor, ServiceToken } from "./service";
+import { DeferredReplyConstructor } from "../messaging/deferred";
 
 export class NamingService {
   public readonly fqnKey = "Hyperverse::Core::FQN::0" as const;
@@ -9,8 +9,15 @@ export class NamingService {
   #serviceConfigs: ServiceConfigs = {};
   #valueObjectConstructors: ValueObjectMap = new Map();
 
-  public registerCommand(service: ServiceConstructor, command: string, paramValidator: ValueObjectConstructor | undefined, returnValidator: DeferredReply) {
-    const serviceConfig = this.#serviceConfigs[service.FQN] || { commands: {}, token: service.token };
+  public registerCommand(
+    service: ExposableServiceConstructor,
+    command: string,
+    paramValidator: ValueObjectConstructor | undefined,
+    returnValidator: DeferredReplyConstructor,
+  ) {
+    const serviceConfig =
+      this.#serviceConfigs[service.FQN] ||
+      { commands: {}, token: service.token };
 
     if (serviceConfig.commands?.[command]) {
       throw new Error("Already registered");
@@ -41,7 +48,7 @@ export class NamingService {
     commandConfig.exposed = true;
   }
 
-  public getServiceToken(serviceName: FQN): ServiceToken<Service<FQN>> | undefined {
+  public getServiceToken(serviceName: FQN): ServiceToken<ExposableService<FQN>> | undefined {
     return this.#serviceConfigs?.[serviceName]?.token;
   }
 

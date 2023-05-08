@@ -2,14 +2,20 @@ import z, { Type, MappedType, Infer } from "myzod";
 import { expectType } from "ts-expect";
 import { CoreNamingService } from "../runner/naming-service";
 import { StreamBoundary } from "../stream/stream-service";
-import { ValueObject } from "../value-object/types";
+import { Register } from "../value-object/register";
+import { ValueObject, ValueObjectConstructor } from "../value-object/types";
 import { domainEventClassFactory } from "./domain-event";
 import { DomainEventStreamService } from "./domain-event-stream";
-import { EventPayload } from "./types";
+import { DomainEventConstructor, ServiceEventPayload } from "./types";
 
 describe("Domain events", () => {
+  @Register
   class Ev1 extends domainEventClassFactory("Test::ValueObject::DomainEvent::E1", z.object({ val: z.string() })) {}
+
+  @Register
   class Ev2 extends domainEventClassFactory("Test::ValueObject::DomainEvent::E2", z.object({ val: z.number() })) {}
+
+  @Register
   class Ev3 extends domainEventClassFactory("Test::ValueObject::DomainEvent::E3", z.object({ val: z.literals("a", "b") })) {}
 
   const streamEvents = [Ev1, Ev2, Ev3] as const;
@@ -36,22 +42,21 @@ describe("Domain events", () => {
     public readonly ids = streamEvents;
     public lastEvent?: InstanceType<(typeof streamEvents)[number]>;
 
-    public async emit(payload: EventPayload<Stream1>): Promise<void> {
-      const index = this.ids.findIndex(ctor => ctor.FQN + "::Payload" === payload.FQN);
+    public async emit(eventPayload: ServiceEventPayload<Stream1>): Promise<void> {
+      const index = this.ids.findIndex(ctor => ctor.FQN + "::Payload" === eventPayload.FQN);
       const ctor = this.ids[index];
       if (ctor === undefined) {
         throw new Error("Cannot find event constructor for this payload");
       }
 
-      eventStream.push(
-        new ctor({
-          eventTypeSequence: eventSequence[index] as number,
-          topicSequence: topicSequence,
-          timestamp: new Date().getTime(),
-          appVersion: "0.0.0",
-          payload: payload.toJSON().value as never,
-        }),
-      );
+      eventStream.push(new ctor({
+        eventTypeSequence: eventSequence[index] as number,
+        topicSequence: topicSequence,
+        timestamp: new Date().getTime(),
+        appVersion: "0.0.0",
+        // @ts-expect-error this should be properly handled by the switch case
+        payload: eventPayload.value(),
+      }));
 
       // @ts-expect-error index is already checked
       sequence.push(index);
@@ -71,7 +76,7 @@ describe("Domain events", () => {
           throw Error("should not happen");
         }
         this.lastEvent = lastEvent;
-        yield await lastEvent;
+        yield lastEvent;
         const index = this.ids.findIndex(E => E.FQN === lastEvent.FQN);
         ++topicSequence;
         ++eventSequence[index];
@@ -86,6 +91,7 @@ describe("Domain events", () => {
 
   test("DomainEvent typing", async () => {
     const schema = z.object({ foo: z.string(), bar: z.number() });
+    @Register
     class Ev extends domainEventClassFactory("Test::ValueObject::DomainEvent::Ex", schema) {}
 
     type EvExpectedType = Type<{
@@ -96,8 +102,7 @@ describe("Domain events", () => {
       appVersion: string;
     }>;
 
-    Ev.schema();
-    Ev.validator().shape().payload;
+    expectType<DomainEventConstructor>(Ev);
 
     expectType<"Test::ValueObject::DomainEvent::Ex">(Ev.FQN);
     expectType<MappedType<ValueObject<"Test::ValueObject::DomainEvent::Ex", Infer<EvExpectedType>>>>(Ev.schema());
@@ -182,7 +187,11 @@ describe("Domain events", () => {
   test("produce events", async () => {
     const s1 = new Stream1();
 
-    const requests = [Ev1.from({ val: "x" }), Ev2.from({ val: 2 }), Ev3.from({ val: "b" })] as const;
+    const requests = [
+      Ev1.from({ val: "x" }),
+      Ev2.from({ val: 2 }),
+      Ev3.from({ val: "b" }),
+    ] as const;
 
     await s1.emit(requests[0]);
     await s1.emit(requests[1]);
@@ -196,8 +205,8 @@ describe("Domain events", () => {
       if (req === undefined) {
         throw new Error("should not happen");
       }
-      expect(e.FQN + "::Payload").toEqual(req.FQN);
-      expect(e.payload).toEqual(req.toJSON().value);
+      expect(e.FQN + "::Payload").toEqual(req.FQN)
+      expect(e.payload).toEqual(req.value());
       expect(e.topicSequence).toEqual(i);
       expect(e.eventTypeSequence).toEqual(0);
       expect(e.timestamp).toBeGreaterThan(0);
