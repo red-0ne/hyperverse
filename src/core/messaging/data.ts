@@ -1,8 +1,6 @@
-import z, { Infer } from "myzod";
-import { ErrorObjectConstructor } from "../errors";
+import z from "myzod";
 import { CoreNamingService } from "../runner/naming-service";
 import { ExposableServiceConstructor } from "../runner/service";
-import { Compute } from "../utils";
 import { valueObjectClassFactory } from "../value-object";
 import { ValueObjectFQN } from "../value-object/types";
 import { messageSchema } from "./message";
@@ -26,33 +24,11 @@ export function dataMessageClassFactory<
     `${dataMessageFQN}${serviceCtor.FQN}::${commandName}`,
     z.object({
       ...messageSchema.shape(),
-      payload: z.union([success, ...failures].map(r => r.schema()),
-      ),
+      payload: z.union([success, ...failures].map(r => r.schema())),
     }),
   );
 
-  const dataFrom = function(param: Infer<ReturnType<typeof success["validator"]>>) {
-    return new success(param);
-  }
-
-  const errorFrom = function(
-    ctor: ErrorObjectConstructor,
-    param: Infer<ReturnType<typeof failures[number]["validator"]>>
-  ) {
-    if (!failures.includes(ctor)) {
-      throw new Error(`Error type ${ctor.FQN} is not a valid error type for this message`);
-    }
-
-    return new ctor(param);
-  }
-
-  Object.defineProperty(dataCtor, "dataFrom", { value: dataFrom });
-  Object.defineProperty(dataCtor, "errorFrom", { value: errorFrom });
-
-  return dataCtor as Compute<
-    typeof dataCtor &
-    { dataFrom: typeof dataFrom, errorFrom: typeof errorFrom }
-  >;
+  return dataCtor;
 }
 
 export type DataMessageConstructor<

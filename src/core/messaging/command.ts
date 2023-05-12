@@ -33,7 +33,7 @@ export function commandMessageClassFactory<
 
   const paramFQN: Param["FQN"] = commandConfig.paramFQN;
   const ParamVO = CoreNamingService.getValueObjectConstructor(paramFQN);
-  if (!isValueObject(ParamVO)) {
+  if (!isValueObject(ParamVO.prototype)) {
     throw new Error(`Command config ${commandConfig.paramFQN} unavailable`);
   }
 

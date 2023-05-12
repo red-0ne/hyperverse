@@ -1,25 +1,41 @@
 import z, { Infer, ObjectType } from "myzod";
 import { ValueObject, ValueObjectConstructor, ValueObjectFQN } from "./types";
 import { CoreNamingService } from "../runner/naming-service";
+import { ErrorObjectFQN } from "../errors";
 
 const root = z.unknown();
 
+// We have to split out error VO from regular VO so that we can have
+// a different prototype chain for them (Error.prototype) vs (ValueObject.prototype)
+// so that we can use instanceof to check for errors vs values when messages are received
+// Having errors inherit from Error is important for stack traces and other error handling features of JS
+// eslint-disable-next-line @typescript-eslint/no-empty-function
+
+const ValueObject = {};
+
 // eslint-disable-next-line @typescript-eslint/no-empty-function
 function valueObjectRootConstructor() {}
-// eslint-disable-next-line @typescript-eslint/no-empty-function
-function errorObjectRootConstructor() {}
-errorObjectRootConstructor.prototype = Error.prototype;
-// eslint-disable-next-line @typescript-eslint/no-empty-function
-function deferredReplyRootConstructor() {}
-deferredReplyRootConstructor.prototype = Promise.prototype;
+valueObjectRootConstructor.prototype = Object.create(ValueObject, {});
+Reflect.setPrototypeOf(valueObjectRootConstructor, ValueObject);
+
+function errorObjectRootConstructor(this: Error, code: ErrorObjectFQN) {
+  const instance = Reflect.construct(Error, [code]);
+  Reflect.setPrototypeOf(instance, Reflect.getPrototypeOf(this));
+  this.name = this.constructor.name;
+  return instance;
+}
+errorObjectRootConstructor.prototype = Object.create(Error.prototype, {
+  constructor: {
+    value: Error,
+    enumerable: false,
+    writable: true,
+    configurable: true,
+  },
+});
+Reflect.setPrototypeOf(errorObjectRootConstructor, Error);
 
 export function isValueObject(value: any): value is ValueObject {
-  return value instanceof valueObjectRootConstructor ||
-    value instanceof errorObjectRootConstructor;
-}
-
-export function isDeferredReply(value: any): value is ValueObject {
-  return value instanceof deferredReplyRootConstructor;
+  return value instanceof valueObjectRootConstructor || value instanceof errorObjectRootConstructor;
 }
 
 export function valueObjectClassFactory<

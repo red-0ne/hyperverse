@@ -5,7 +5,7 @@ export function Exposable(target: any, key: string) {
   const params = Reflect.getMetadata("design:paramtypes", target, key);
   const returnType = Reflect.getMetadata("design:returntype", target, key);
 
-  // maybe we should emit alerts or logs instead of just ignoring the command
+  // TODO emit logs instead of just ignoring the command
 
   if (params?.length > 1) {
     return;
@@ -15,7 +15,13 @@ export function Exposable(target: any, key: string) {
     return;
   }
 
-  if (isValueObject(!returnType?.prototype)) {
+  if (
+    !(returnType.prototype instanceof Promise) ||
+    !isValueObject(returnType.success.prototype) ||
+    !Array.isArray(returnType.failures) ||
+    !returnType.failures.every((e: any) =>
+      isValueObject(e.prototype) && e.prototype instanceof Error)
+  ) {
     return;
   }
 
@@ -23,5 +29,6 @@ export function Exposable(target: any, key: string) {
     return;
   }
 
-  CoreNamingService.registerCommand(target.constructor, key, params?.[0]?.prototype, returnType);
+  CoreNamingService.registerCommand(target.constructor, key, params[0], returnType);
+  return target;
 }

@@ -1,13 +1,16 @@
+import "reflect-metadata";
 import z from "myzod";
 import { dependencyBundleFactory } from "../di-bundle";
 import { errorObjectClassFactory } from "../errors";
 import { ExposableService, ServiceToken } from "../runner/service";
 import { valueObjectClassFactory } from "../value-object";
 import { Register } from "../value-object/register";
-import { commandMessageClassFactory } from "./command";
+import { commandMessageClassFactory, commandMessageFQN } from "./command";
 import { deferredReplyClassFactory } from "./deferred";
 import { DependencyBundleTokenMap } from "../di-bundle/types";
 import { PeerId, PeerInfo } from "../runner/types";
+import { isValueObject } from "../value-object/value-object-factory";
+import { Exposable } from "../runner/exposable";
 
 describe.only("Messaging", () => {
   @Register
@@ -34,11 +37,7 @@ describe.only("Messaging", () => {
     z.object({ reason: z.number() }),
   ) {}
 
-  class TheReply extends deferredReplyClassFactory(
-    "Test::ValueObject::Reply::TheReply",
-    Result,
-    [Err1, Err2],
-  ) {}
+  class TheReply extends deferredReplyClassFactory(Result, [Err1, Err2]) {}
 
   class Service implements ExposableService {
     readonly ready = Promise.resolve();
@@ -48,6 +47,7 @@ describe.only("Messaging", () => {
     static readonly deps = dependencyBundleFactory({} as DependencyBundleTokenMap);
     static readonly token = new ServiceToken(Service["FQN"]);
 
+    @Exposable
     theCommand(x: Arg): TheReply {
       return new TheReply((resolve) => resolve(new Result({ r: x.foo === "bar" })));
     }
@@ -64,7 +64,10 @@ describe.only("Messaging", () => {
       sequence: 1,
       length: 1,
       end: true,
-      origin: new PeerInfo({ hosts: [new URL("")], peerId: new PeerId({ id: "123" }) }),
+      origin: new PeerInfo({
+        hosts: ["x://y"],
+        peerId: new PeerId({ id: "123" }),
+      }),
       payload: {
         command: "theCommand",
         param: new Arg({ foo: "bar" }),
@@ -72,6 +75,12 @@ describe.only("Messaging", () => {
       },
     });
 
-    expect(TheCommand.FQN).toEqual("Test::X::Y::theCommand");
+    expect(TheCommand.FQN).toEqual(`${commandMessageFQN}Test::X::Y::theCommand`);
+    expect(cmd.FQN).toEqual(`${commandMessageFQN}Test::X::Y::theCommand`);
+    expect(cmd.payload.command).toEqual("theCommand");
+    expect(cmd.payload.param.FQN).toEqual("Test::ValueObject::Arg");
+    expect(cmd.payload.param.foo).toEqual("bar");
+    expect(isValueObject(cmd.payload.param)).toEqual(true);
+    expect(cmd.payload.serviceFQN).toEqual("Test::X::Y");
   });
 });

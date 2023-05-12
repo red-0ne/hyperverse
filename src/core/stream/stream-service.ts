@@ -11,7 +11,10 @@ const streamBoundarySchema = z
   })
   .withPredicate(v => v.end >= v.start);
 
-export class StreamBoundary extends valueObjectClassFactory("Core::ValueObject::StreamBoundary", streamBoundarySchema) {}
+export class StreamBoundary extends valueObjectClassFactory(
+  "Core::ValueObject::StreamBoundary",
+  streamBoundarySchema,
+) {}
 
 export type StreamService<
   Name extends StreamFQN<string, string> = any,

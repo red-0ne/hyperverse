@@ -12,12 +12,14 @@ export class NamingService {
   public registerCommand(
     service: ExposableServiceConstructor,
     command: string,
-    paramValidator: ValueObjectConstructor | undefined,
+    paramValidator: ValueObjectConstructor,
     returnValidator: DeferredReplyConstructor,
   ) {
-    const serviceConfig =
-      this.#serviceConfigs[service.FQN] ||
-      { commands: {}, token: service.token };
+    if (!this.#serviceConfigs[service.FQN]) {
+      this.#serviceConfigs[service.FQN] = { commands: {}, token: service.token };
+    }
+
+    const serviceConfig = this.#serviceConfigs[service.FQN]!;
 
     if (serviceConfig.commands?.[command]) {
       throw new Error("Already registered");

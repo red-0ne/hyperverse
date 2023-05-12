@@ -24,8 +24,7 @@ describe("Stream service", () => {
     constructor(
       public readonly resourceId: string,
       public readonly sequence: (Data1 | Data2)[]
-    ) {
-    }
+    ) { }
 
     public emit(data: Data1 | Data2): Promise<void> {
       this.sequence.push(data);
@@ -64,17 +63,17 @@ describe("Stream service", () => {
     ];
     const stream = new DataStream("foo", source);
 
-    const boundary = new StreamBoundary({ start: null, end: null } as any);
-    const result: (Data1 | Data2 )[] = [];
+    const boundary = new StreamBoundary({ start: 0, end: Infinity });
+    const result: (Data1 | Data2)[] = [];
     let count = 0;
-    //const result = [...stream.stream(boundary)];
     for await (const data of stream.stream(boundary)) {
-      if (count > 3) {
+      if (count > 2) {
         break;
       }
       result.push(data);
       count++;
     }
-    expect(result).toMatchObject([]);
+    expect(result.length).toBe(3);
+    expect(result).toMatchObject([source[0], source[1], source[2]]);
   });
 });
