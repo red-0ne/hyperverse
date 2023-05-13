@@ -26,8 +26,12 @@ describe.only("ErrorObject behavior", () => {
     expectType<ErrorObject>(error);
     expectType<string>(error.foo);
     expectType<number>(error.doo);
+    expectType<TestError["FQN"]>(error.FQN);
 
     expect(error).toBeInstanceOf(Error);
     expect(isValueObject(error)).toBe(true);
+    expect(error.FQN).toEqual("Core::ValueObject::Error::TestError");
+    expect(error.foo).toEqual("bar");
+    expect(error.doo).toEqual(1);
   });
 });
