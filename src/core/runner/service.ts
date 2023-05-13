@@ -5,10 +5,10 @@ import { Constructor } from "../utils";
 import { FQN } from "../value-object";
 import { ValueObjectFQN } from "../value-object/types";
 
-export type ExposableService<Name extends FQN = FQN, Commands extends string = any> = {
+export type ExposableService<Name extends FQN = FQN> = {
   readonly FQN: Name,
   readonly ready: Promise<void>,
-}
+} ;
 
 export type ExposableServiceConstructor<
   Name extends FQN = FQN,
@@ -27,8 +27,8 @@ export class ServiceToken<S extends ExposableService = ExposableService> extends
   }
 }
 
-export type CommandsConfig = Record<string, {
-  paramFQN: ValueObjectFQN | undefined,
+export type CommandsConfig<FQN extends ValueObjectFQN = ValueObjectFQN> = Record<string, {
+  paramFQN: FQN,
   returnFQNs: Readonly<[ValueObjectFQN, ...ErrorObjectFQN[]]>,
   exposed: boolean,
 }>;

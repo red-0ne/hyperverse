@@ -143,6 +143,7 @@ export class Runner {
       return;
     }
 
+    // @ts-expect-error CommandConfig type does not have key signature
     if (typeof service[command] !== "function") {
       const err = new CommandNotFound({ context: cmd });
       this.#deps.logger.emit(err);

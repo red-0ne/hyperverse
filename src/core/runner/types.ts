@@ -2,15 +2,7 @@ import z from "myzod";
 import { valueObjectClassFactory, ValueObjectConstructor } from "../value-object";
 import { ValueObjectFQN } from "../value-object/types";
 import { Register } from "../value-object/register";
-
-export const urlStringSchema = z.string().withPredicate((x) => {
-  try {
-    new URL(x);
-    return true;
-  } catch {
-    return false;
-  }
-});
+import { stringToURLSchema } from "../utils";
 
 export type ValueObjectMap<Name extends ValueObjectFQN = ValueObjectFQN> = Map<Name, ValueObjectConstructor<Name>>;
 
@@ -24,7 +16,7 @@ export class PeerId extends valueObjectClassFactory(
 
 export const peerInfoSchema = z.object({
   peerId: PeerId.schema(),
-  hosts: z.array(urlStringSchema),
+  hosts: z.array(stringToURLSchema),
 });
 
 @Register
