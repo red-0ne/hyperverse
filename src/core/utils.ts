@@ -15,3 +15,11 @@ export const positiveIntegerSchema = z
   .withPredicate(n => parseInt(n.toString(), 10) === n);
 export const percentageSchema = z.number().min(0).max(100);
 export const appVersionSchema = z.string().min(1);
+export const stringToURLSchema = z.string().withPredicate(x => {
+  try {
+    new URL(x);
+    return true;
+  } catch (e) {
+    return false;
+  }
+});
