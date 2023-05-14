@@ -24,6 +24,7 @@ describe.only("ErrorObject behavior", () => {
 
     expectType<ValueObject>(error);
     expectType<ErrorObject>(error);
+    expectType<Error>(error);
     expectType<string>(error.foo);
     expectType<number>(error.doo);
     expectType<TestError["FQN"]>(error.FQN);

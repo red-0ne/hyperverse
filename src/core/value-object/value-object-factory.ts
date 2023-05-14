@@ -20,8 +20,8 @@ Reflect.setPrototypeOf(valueObjectRootConstructor, ValueObject);
 
 function errorObjectRootConstructor(this: Error, code: ErrorObjectFQN) {
   const instance = Reflect.construct(Error, [code]);
+  this.name = "ErrorObject";
   Reflect.setPrototypeOf(instance, Reflect.getPrototypeOf(this));
-  this.name = this.constructor.name;
   return instance;
 }
 errorObjectRootConstructor.prototype = Object.create(Error.prototype, {

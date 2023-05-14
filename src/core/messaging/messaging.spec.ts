@@ -1,11 +1,11 @@
 import "reflect-metadata";
 import z from "myzod";
 import { dependencyBundleFactory } from "../di-bundle";
-import { errorObjectClassFactory } from "../errors";
+import { ErrorObject, errorObjectClassFactory } from "../errors";
 import { ExposableService, ServiceToken } from "../runner/service";
 import { ValueObject, valueObjectClassFactory } from "../value-object";
 import { Register } from "../value-object/register";
-import { CommandMessage, CommandMessageConstructor, commandMessageClassFactory, commandMessageFQN } from "./command";
+import { CommandMessage, commandMessageClassFactory, commandMessageFQN } from "./command";
 import { DeferredReply, deferredReplyClassFactory } from "./deferred";
 import { DependencyBundleTokenMap } from "../di-bundle/types";
 import { PeerId, PeerInfo } from "../runner/types";
@@ -57,7 +57,10 @@ describe.only("Messaging", () => {
 
     @Exposable
     theCommand(x: Arg): TheReply {
-      return new TheReply((resolve) => resolve(new Result({ r: x.foo === "bar" })));
+      return new TheReply((resolve) => {
+        if (x.foo !== "bob") return resolve(new Result({ r: true }));
+        else return resolve(new Err1({ reason: "a" }));
+      });
     }
 
     @Exposable
@@ -137,7 +140,7 @@ describe.only("Messaging", () => {
     }).toThrowError(`Service ${Service.FQN} does not have a command named nonexistingCommand`);
   });
 
-  it("fails to create a command class command does not use a valueObject as arg", () => {
+  it("fails to create a command class if it does not use a valueObject as arg", () => {
     expect(() => {
       class CommandMsg extends commandMessageClassFactory(Service, "commandWithUnregisteredArg" as any) {}
     }).toThrowError(`Service ${Service.FQN} does not have a command named commandWithUnregisteredArg`);
@@ -171,6 +174,28 @@ describe.only("Messaging", () => {
       expectType<Result>(reply);
       expectType<ValueObject>(reply);
       expectType<boolean>(reply.r);
+    } else {
+      // if we get here, the test should fail
+      expect(true).toEqual(false);
+    }
+  });
+
+  it("can receive a reply with a failed result", async () => {
+    const service = new Service();
+    const reply = await service.theCommand(new Arg({ foo: "bob" }));
+
+    expect(reply).toBeInstanceOf(Err1);
+    expect(reply).toBeInstanceOf(Error);
+    expect(isValueObject(reply)).toEqual(true);
+    expect(reply.FQN).toEqual("Test::ValueObject::Error::Err1");
+
+    if (reply instanceof Err1) {
+      expectType<"a" | "b">(reply.reason);
+      expectType<Err1>(reply);
+      expectType<Error>(reply);
+      expectType<ValueObject>(reply);
+      expectType<ErrorObject>(reply);
+      expect(reply.reason).toEqual("a");
     } else {
       // if we get here, the test should fail
       expect(true).toEqual(false);

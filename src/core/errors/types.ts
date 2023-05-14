@@ -10,7 +10,7 @@ export type ErrorObjectConstructor<
 export type ErrorObject<
   Name extends ErrorObjectFQN = ErrorObjectFQN,
   Context extends ErrorContext = ErrorContext,
-> = InstanceType<ErrorObjectConstructor<Name, Context>> ;
+> = InstanceType<ErrorObjectConstructor<Name, Context>>;
 
 export type ErrorObjectFQN<
   Domain extends string = string,
