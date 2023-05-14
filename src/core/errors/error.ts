@@ -11,6 +11,6 @@ export function errorObjectClassFactory<
 
   return ctor as Compute<
     typeof ctor &
-    Constructor<{ readonly name: "ErrorObject", readonly message: Name }>
+    Constructor<{ readonly name: "ErrorObject", readonly message: Name, stack?: string }>
   >;
 }

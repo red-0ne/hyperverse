@@ -196,6 +196,7 @@ describe.only("Messaging", () => {
       expectType<ValueObject>(reply);
       expectType<ErrorObject>(reply);
       expect(reply.reason).toEqual("a");
+      expect(reply?.stack).not.toEqual(undefined);
     } else {
       // if we get here, the test should fail
       expect(true).toEqual(false);

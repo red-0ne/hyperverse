@@ -46,7 +46,7 @@ export function valueObjectClassFactory<
     this: { __parsedValue__: Infer<Validator> },
     input: Infer<Validator>
   ) {
-    let extractedInput = ( input?.value && input?.[CoreNamingService.fqnKey] === name)
+    let extractedInput = (input?.value && input?.[CoreNamingService.fqnKey] === name)
       ? input.value
       : input;
 
@@ -79,9 +79,11 @@ function buildPrototype<Name extends ValueObjectFQN, Value extends { [key: strin
 ) {
   const properties = Object.keys(validator.shape());
 
+  // Errors occupy the namespace ${Domain}::ValueObject::Error::{ErrorName}
   const cmp = name.split("::");
   const currentProto = cmp?.[1] === "ValueObject" && cmp?.[2] === "Error"
-    ? errorObjectRootConstructor.prototype
+    // @ts-ignore
+    ? new errorObjectRootConstructor(name)
     : valueObjectRootConstructor.prototype;
   const proto = Object.create(currentProto, {
     properties: { value: function() { return properties; } },

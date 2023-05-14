@@ -22,29 +22,6 @@ type CommandParam<
 
 export type CommandMessageFQN<Implementation extends string = string> = ValueObjectFQN<"Core", `Message::Command::${Implementation}`>;
 
-//export type CommandMessage<
-//  Ctor extends ExposableServiceConstructor = any,
-//  Command extends Commands<InstanceType<Ctor>> = any
-//> = InstanceType<CommandMessageConstructor<Ctor, Command>>;
-
-export type CommandMessage<
-  SvcFQN extends FQN = FQN,
-  Command extends string = string,
-  Param extends ValueObject = ValueObject
-> = ValueObject<
-  CommandMessageFQN,
-  Compute<
-    Infer<typeof messageSchema> &
-    {
-      payload: {
-        serviceFQN: SvcFQN;
-        command: Command;
-        param: Param;
-      }
-    }
-  >
->;
-
 export const commandMessageFQN: CommandMessageFQN = `Core::ValueObject::Message::Command::`;
 
 export function commandMessageClassFactory<
@@ -82,3 +59,21 @@ export type CommandMessageConstructor<
   Ctor extends ExposableServiceConstructor = any,
   Command extends Commands<InstanceType<Ctor>> = any,
 > = ReturnType<typeof commandMessageClassFactory<Ctor, Command>>;
+
+export type CommandMessage<
+  SvcFQN extends FQN = FQN,
+  Command extends string = string,
+  Param extends ValueObject = ValueObject
+> = ValueObject<
+  CommandMessageFQN,
+  Compute<
+    Infer<typeof messageSchema> &
+    {
+      payload: {
+        serviceFQN: SvcFQN;
+        command: Command;
+        param: Param;
+      }
+    }
+  >
+>;
