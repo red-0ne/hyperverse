@@ -3,7 +3,7 @@ import { expectType } from "ts-expect";
 import { CoreNamingService } from "../runner/naming-service";
 import { StreamBoundary } from "../stream/stream-service";
 import { Register } from "../value-object/register";
-import { ValueObject, ValueObjectConstructor } from "../value-object/types";
+import { ValueObject } from "../value-object/types";
 import { domainEventClassFactory } from "./domain-event";
 import { DomainEventStreamService } from "./domain-event-stream";
 import { DomainEventConstructor, ServiceEventPayload } from "./types";

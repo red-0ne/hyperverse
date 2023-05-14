@@ -1,4 +1,4 @@
-import z, { Infer, MappedType, ObjectType } from "myzod";
+import z, { Infer, MappedType } from "myzod";
 import { CoreNamingService } from "../runner/naming-service";
 import { ExposableServiceConstructor } from "../runner/service";
 import { valueObjectClassFactory } from "../value-object";
@@ -6,23 +6,23 @@ import { FQN, ValueObject, ValueObjectFQN } from "../value-object/types";
 import { DeferredReply } from "./deferred";
 import { messageSchema } from "./message";
 import { Compute } from "../utils";
+import { ErrorObject } from "../errors";
 
 export type Commands<Svc> = {
-  [Command in keyof Svc]: Svc[Command] extends (arg: infer A) => DeferredReply ? A extends ValueObject ? Command : never : never;
+  [Command in keyof Svc]: Svc[Command] extends (arg: infer A) => DeferredReply<ValueObject, ErrorObject[]> ? A extends ValueObject ? Command : never : never;
 }[keyof Svc] & string;
 
 type CommandParam<
   Svc extends InstanceType<ExposableServiceConstructor>,
   Command extends Commands<Svc>
-> = Svc[Command] extends (arg: infer Args) => DeferredReply
+> = Svc[Command] extends (arg: infer Args) => DeferredReply<ValueObject, ErrorObject[]>
   ? Args extends ValueObject
     ? Args
     : never
   : never;
 
 export type CommandMessageFQN<Implementation extends string = string> = ValueObjectFQN<"Core", `Message::Command::${Implementation}`>;
-
-export const commandMessageFQN: CommandMessageFQN = `Core::ValueObject::Message::Command::`;
+export const commandMessageFQN = `Core::ValueObject::Message::Command::`;
 
 export function commandMessageClassFactory<
   Ctor extends ExposableServiceConstructor,
@@ -36,8 +36,9 @@ export function commandMessageClassFactory<
   }
 
   const paramFQN = commandConfig.paramFQN;
+  const svcFQN: Svc["FQN"] = serviceCtor.FQN;
   const ParamVO  = CoreNamingService.getValueObjectConstructor(paramFQN);
-  const fqn: CommandMessageFQN<`${Svc["FQN"]}::${Command}`> = `${commandMessageFQN}${serviceCtor.FQN}::${commandName}` as any;
+  const fqn: CommandMessageFQN<`${Svc["FQN"]}::${Command}`> = `${commandMessageFQN}${svcFQN}::${commandName}`;
   const validator = z.object({
     ...messageSchema.shape(),
     payload: z.object({
@@ -46,19 +47,16 @@ export function commandMessageClassFactory<
       param: ParamVO.schema() as MappedType<Param>,
     }),
   });
-type t = ReturnType<(typeof validator)["shape"]>["payload"];
-  const cmdCtor = valueObjectClassFactory<CommandMessageFQN, typeof validator>(
-    fqn,
-    validator
-  );
+
+  const cmdCtor = valueObjectClassFactory(fqn, validator);
 
   return cmdCtor;
 }
 
 export type CommandMessageConstructor<
-  Ctor extends ExposableServiceConstructor = any,
-  Command extends Commands<InstanceType<Ctor>> = any,
-> = ReturnType<typeof commandMessageClassFactory<Ctor, Command>>;
+  Ctor extends ExposableServiceConstructor = ExposableServiceConstructor,
+  Command extends Commands<InstanceType<Ctor>> = Commands<InstanceType<Ctor>>,
+> = ReturnType<typeof commandMessageClassFactory<Ctor, InstanceType<Ctor>, Command>>;
 
 export type CommandMessage<
   SvcFQN extends FQN = FQN,

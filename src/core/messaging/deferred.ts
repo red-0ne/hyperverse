@@ -25,6 +25,6 @@ export type DeferredReplyConstructor<
 > = ReturnType<typeof deferredReplyClassFactory<Success, Failures>>;
 
 export type DeferredReply<
-  Success extends ValueObjectConstructor = ValueObjectConstructor,
-  Failures extends ErrorObjectConstructor[] = ErrorObjectConstructor[],
-> = Promise<InstanceType<Success> | InstanceType<Failures[number]>>;
+  Success,
+  Failures extends any[],
+> = Promise<Success | Failures[number]>;

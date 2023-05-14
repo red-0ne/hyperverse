@@ -1,7 +1,7 @@
 import z, { ObjectType, Infer } from "myzod"
 import { appVersionSchema, positiveIntegerSchema } from "../utils";
 import { valueObjectClassFactory } from "../value-object"
-import { DomainEventConstructor, DomainEventFQN, DomainEventPayload, DomainEventPayloadConstructor, DomainEventPayloadFQN, DomainEventShape } from "./types";
+import { DomainEventConstructor, DomainEventFQN, DomainEventPayloadFQN, DomainEventShape } from "./types";
 
 export const baseDomainEventSchema = z.object({
   eventTypeSequence: positiveIntegerSchema,

@@ -12,6 +12,7 @@ import { PeerId, PeerInfo } from "../runner/types";
 import { isValueObject } from "../value-object/value-object-factory";
 import { Exposable } from "../runner/exposable";
 import { expectType } from "ts-expect";
+import { dataMessageClassFactory } from "./data";
 
 describe.only("Messaging", () => {
   class UnregisteredArg {
@@ -97,7 +98,7 @@ describe.only("Messaging", () => {
       },
     });
 
-    expect(CommandMsg.FQN).toEqual(`${commandMessageFQN}Test::X::Y::theCommand`);
+    expect(CommandMsg.FQN).toEqual(`Core::ValueObject::Message::Command::Test::X::Y::theCommand`);
 
     expectType<CommandMsg>(cmd);
     expectType<CommandMessage>(cmd);
@@ -115,7 +116,7 @@ describe.only("Messaging", () => {
     expect(cmd.FQN).toEqual(CommandMsg.FQN);
 
     expect(cmd.payload.command).toEqual("theCommand");
-    expect(cmd.FQN).toEqual(`${commandMessageFQN}Test::X::Y::theCommand`);
+    expect(cmd.FQN).toEqual(`Core::ValueObject::Message::Command::Test::X::Y::theCommand`);
     expect(cmd.payload.serviceFQN).toEqual("Test::X::Y");
 
     expect(isValueObject(cmd.payload.param)).toEqual(true);
@@ -134,7 +135,7 @@ describe.only("Messaging", () => {
     expect(cmd.origin.peerId.id).toEqual("123");
   });
 
-  it("fails to create a command class if arg is not registered", () => {
+  it("fails to create a command class if command does not exist", () => {
     expect(() => {
       class CommandMsg extends commandMessageClassFactory(Service, "nonexistingCommand" as any) {}
     }).toThrowError(`Service ${Service.FQN} does not have a command named nonexistingCommand`);
@@ -157,7 +158,7 @@ describe.only("Messaging", () => {
     expect(replyPromise.failures).toMatchObject([Err1, Err2]);
 
     expectType<Promise<Result | Err1 | Err2>>(replyPromise);
-    expectType<DeferredReply>(replyPromise);
+    expectType<DeferredReply<Result, [Err1, Err2]>>(replyPromise);
     expectType<TheReply>(replyPromise);
 
     expectType<typeof Result>(replyPromise.success);
@@ -201,5 +202,80 @@ describe.only("Messaging", () => {
       // if we get here, the test should fail
       expect(true).toEqual(false);
     }
+  });
+
+  it("can create a reply message for a service command", () => {
+    class DataMsg extends dataMessageClassFactory(Service, "theCommand") {}
+
+    const dataMsg = new DataMsg({
+      id: "123",
+      sequence: 1,
+      length: 1,
+      end: true,
+      origin: new PeerInfo({
+        hosts: ["x://y"],
+        peerId: new PeerId({ id: "123" }),
+      }),
+      payload: new Result({ r: true }),
+    });
+
+    const errorMsg = new DataMsg({
+      id: "123",
+      sequence: 1,
+      length: 1,
+      end: true,
+      origin: new PeerInfo({
+        hosts: ["x://y"],
+        peerId: new PeerId({ id: "123" }),
+      }),
+      payload: new Err2({ reason: 11 }),
+    });
+
+    expect(DataMsg.FQN).toEqual(`Core::ValueObject::Message::Data::Test::X::Y::theCommand`);
+
+    expectType<DataMsg>(dataMsg);
+    expectType<ValueObject>(dataMsg);
+    expectType<ValueObject>(dataMsg.payload);
+    expectType<Result | Err1 | Err2>(dataMsg.payload);
+
+    expectType<DataMsg>(errorMsg);
+    expectType<ValueObject>(errorMsg);
+    expectType<ValueObject>(errorMsg.payload);
+    expectType<Result | Err1 | Err2>(errorMsg.payload);
+
+    const dataPayload = dataMsg.payload;
+    if (dataPayload.constructor === Result) {
+      expectType<Result>(dataPayload);
+      expectType<boolean>(dataPayload.r);
+      expect(dataPayload.r).toEqual(true);
+    } else {
+      // if we get here, the test should fail
+      expect(true).toEqual(false);
+    }
+
+    const errorPayload = errorMsg.payload;
+    if (errorPayload.constructor === Err2) {
+      expectType<Err2>(errorPayload);
+      expectType<Error>(errorPayload);
+      expectType<number>(errorPayload.reason);
+      expect(errorPayload.reason).toEqual(11);
+      expect(errorPayload).toBeInstanceOf(Err2);
+      expect(errorPayload).toBeInstanceOf(Error);
+    } else {
+      // if we get here, the test should fail
+      expect(true).toEqual(false);
+    }
+  });
+
+  it("fails to create a data class if command does not exist", () => {
+    expect(() => {
+      class dataMsg extends dataMessageClassFactory(Service, "nonexistingCommand" as any) {}
+    }).toThrowError(`Service ${Service.FQN} does not have a command named nonexistingCommand`);
+  });
+
+  it("fails to create a data class if it does not use a valueObject as arg", () => {
+    expect(() => {
+      class dataMsg extends dataMessageClassFactory(Service, "commandWithUnregisteredArg" as any) {}
+    }).toThrowError(`Service ${Service.FQN} does not have a command named commandWithUnregisteredArg`);
   });
 });
