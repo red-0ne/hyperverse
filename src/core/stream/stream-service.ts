@@ -29,8 +29,11 @@ export type StreamService<
   lastData?: Data;
 
   emit(data: Data): Promise<void>;
-  stream(limit: StreamBoundary): AsyncIterable<Data>;
+  stream(limit?: StreamBoundary): AsyncIterable<Data>;
   ready(): Promise<void>;
 };
 
-export type StreamFQN<Domain extends string = string, Implementation extends string = string> = FQN<Domain, "Stream", Implementation>;
+export type StreamFQN<
+  Domain extends string = string,
+  Implementation extends string = string
+> = FQN<Domain, "Stream", Implementation>;

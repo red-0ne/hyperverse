@@ -37,10 +37,11 @@ describe("Domain events", () => {
     sequence = [];
     eventStream = [];
   });
+
   class Stream1 implements DomainEventStreamService {
     public readonly FQN = "Test::Stream::DomainEvent::Stream1";
     public readonly ids = streamEvents;
-    public lastEvent?: InstanceType<(typeof streamEvents)[number]>;
+    public lastData?: InstanceType<(typeof streamEvents)[number]>;
 
     public async emit(eventPayload: ServiceEventPayload<Stream1>): Promise<void> {
       const index = this.ids.findIndex(ctor => ctor.FQN + "::Payload" === eventPayload.FQN);
@@ -71,13 +72,13 @@ describe("Domain events", () => {
           break;
         }
 
-        const lastEvent = eventStream[current % eventStream.length];
-        if (lastEvent === undefined) {
+        const lastData = eventStream[current % eventStream.length];
+        if (lastData === undefined) {
           throw Error("should not happen");
         }
-        this.lastEvent = lastEvent;
-        yield lastEvent;
-        const index = this.ids.findIndex(E => E.FQN === lastEvent.FQN);
+        this.lastData = lastData;
+        yield lastData;
+        const index = this.ids.findIndex(E => E.FQN === lastData.FQN);
         ++topicSequence;
         ++eventSequence[index];
         ++current;
@@ -159,7 +160,7 @@ describe("Domain events", () => {
     expectType<"Test::Stream::DomainEvent::Stream1">(s1.FQN);
 
     expect(s1.FQN).toEqual("Test::Stream::DomainEvent::Stream1");
-    expect(s1.lastEvent).toEqual(undefined);
+    expect(s1.lastData).toEqual(undefined);
     expect(s1.ids.length).toEqual(3);
 
     for await (const e of s1.stream(new StreamBoundary({ start: 0, end: 9 }))) {

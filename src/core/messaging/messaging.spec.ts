@@ -49,16 +49,20 @@ describe.only("Messaging", () => {
   class TheReply extends deferredReplyClassFactory(Result, [Err1, Err2] as const) {}
 
   class Service implements ExposableService {
-    readonly ready = Promise.resolve();
     readonly FQN = `Test::X::Y`;
 
     static readonly FQN = `Test::X::Y`;
     static readonly deps = dependencyBundleFactory({} as DependencyBundleTokenMap);
     static readonly token = new ServiceToken(Service["FQN"]);
 
+    public ready(): Promise<void> {
+      return Promise.resolve();
+    }
+
     @Exposable
     theCommand(x: Arg): TheReply {
-      return new TheReply((resolve) => {
+      return new TheReply(async (resolve) => {
+        await new Promise((r) => setTimeout(r, 100));
         if (x.foo !== "bob") return resolve(new Result({ r: true }));
         else return resolve(new Err1({ reason: "a" }));
       });
