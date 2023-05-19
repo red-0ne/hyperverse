@@ -41,13 +41,20 @@ export class Runner {
   readonly #dataStreams = new Map<string, any>();
   readonly #peerInfo: PeerInfo;
   readonly #deps: RunnerDeps;
+  readonly #ready: Promise<void>;
 
   constructor(deps: RunnerDeps, @Inject(Injector) protected readonly injector: Injector) {
     this.#deps = deps;
     this.#peerInfo = this.#deps.identity.getPeerInfo();
+
+    this.#ready = this.start();
   }
 
-  protected async start() {
+  public ready(): Promise<void> {
+    return this.#ready;
+  }
+
+  protected async start(): Promise<void> {
     this.subscribeToPeerUpdates();
     this.handleMessages();
     await this.publishExposedServices();
@@ -133,7 +140,7 @@ export class Runner {
     }
 
     const serviceToken = CoreNamingService.getServiceToken(serviceFQN);
-    const service: ExposableService<typeof serviceFQN> = this.injector.get(serviceToken);
+    const service: ExposableService = this.injector.get(serviceToken);
     if (service === undefined) {
       const err = new ServiceNotInjected({ context: cmd });
       this.#deps.logger.emit(err);
