@@ -1,8 +1,8 @@
-import z, { MappedType, Type, UnionType } from "myzod";
+import z, { MappedType } from "myzod";
 import { CoreNamingService } from "../runner/naming-service";
 import { ExposableServiceConstructor } from "../runner/service";
 import { valueObjectClassFactory } from "../value-object";
-import { ValueObject, ValueObjectConstructor, ValueObjectFQN } from "../value-object/types";
+import { ValueObjectConstructor, ValueObjectFQN } from "../value-object/types";
 import { messageSchema } from "./message";
 import { Commands } from "./command";
 import { DeferredReply } from "./deferred";
@@ -17,7 +17,7 @@ type CommandResult<
   Command extends Commands<Svc>
 > = Svc[Command] extends (arg: any) => infer R
   ? R extends DeferredReply<infer Success, infer Failure>
-    ? Success// | Failure[number]
+    ? InstanceType<Success> | InstanceType<Failure[number]>
     : never
   : string;
 
@@ -26,7 +26,7 @@ export function dataMessageClassFactory<
   Svc extends InstanceType<Ctor>,
   Command extends Commands<Svc>,
   Reply extends CommandResult<Svc, Command>
->(serviceCtor: Ctor, commandName: Command & string) {
+>(serviceCtor: Ctor, commandName: Command) {
   const serviceConfig = CoreNamingService.getCommandConfig(serviceCtor.FQN, commandName);
   if (!serviceConfig) {
     throw new Error(`Service ${serviceCtor.FQN} does not have a command named ${commandName}`);

@@ -2,12 +2,11 @@ import "reflect-metadata";
 import z from "myzod";
 import { dependencyBundleFactory } from "../di-bundle";
 import { ErrorObject, errorObjectClassFactory } from "../errors";
-import { ExposableService, ServiceToken } from "../runner/service";
+import { ServiceToken, exposableServiceFactory } from "../runner/service";
 import { ValueObject, valueObjectClassFactory } from "../value-object";
 import { Register } from "../value-object/register";
-import { CommandMessage, commandMessageClassFactory, commandMessageFQN } from "./command";
+import { CommandMessage, commandMessageClassFactory } from "./command";
 import { DeferredReply, deferredReplyClassFactory } from "./deferred";
-import { DependencyBundleTokenMap } from "../di-bundle/types";
 import { PeerId, PeerInfo } from "../runner/types";
 import { isValueObject } from "../value-object/value-object-factory";
 import { Exposable } from "../runner/exposable";
@@ -48,17 +47,11 @@ describe.only("Messaging", () => {
 
   class TheReply extends deferredReplyClassFactory(Result, [Err1, Err2] as const) {}
 
-  class Service implements ExposableService {
-    readonly FQN = `Test::X::Y`;
-
-    static readonly FQN = `Test::X::Y`;
-    static readonly deps = dependencyBundleFactory({} as DependencyBundleTokenMap);
-    static readonly token = new ServiceToken(Service["FQN"]);
-
-    public ready(): Promise<void> {
-      return Promise.resolve();
-    }
-
+  class Service extends exposableServiceFactory(
+    "Test::X::Y",
+    dependencyBundleFactory({}),
+    new ServiceToken("Test::X::Y")
+  ) {
     @Exposable
     theCommand(x: Arg): TheReply {
       return new TheReply(async (resolve) => {
@@ -75,11 +68,16 @@ describe.only("Messaging", () => {
 
     @Exposable
     simpleFn(x: string): TheReply {
-      return new TheReply((resolve) => resolve(new Result({ r: true })));
+      return new TheReply((resolve) => resolve(new Result({ r: x === "bar" })));
     }
 
+    @Exposable
     foo(x: Arg): string {
       return x.foo;
+    }
+
+    bar(x: Arg): TheReply {
+      return new TheReply((resolve) => resolve(new Result({ r: x.foo === "bar" })));
     }
   }
 
@@ -162,7 +160,7 @@ describe.only("Messaging", () => {
     expect(replyPromise.failures).toMatchObject([Err1, Err2]);
 
     expectType<Promise<Result | Err1 | Err2>>(replyPromise);
-    expectType<DeferredReply<Result, [Err1, Err2]>>(replyPromise);
+    expectType<DeferredReply<typeof Result, Readonly<[typeof Err1, typeof Err2]>>>(replyPromise);
     expectType<TheReply>(replyPromise);
 
     expectType<typeof Result>(replyPromise.success);

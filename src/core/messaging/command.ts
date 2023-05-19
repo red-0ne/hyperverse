@@ -2,20 +2,20 @@ import z, { Infer, MappedType } from "myzod";
 import { CoreNamingService } from "../runner/naming-service";
 import { ExposableServiceConstructor } from "../runner/service";
 import { valueObjectClassFactory } from "../value-object";
-import { FQN, ValueObject, ValueObjectFQN } from "../value-object/types";
+import { FQN, ValueObject, ValueObjectConstructor, ValueObjectFQN } from "../value-object/types";
 import { DeferredReply } from "./deferred";
 import { messageSchema } from "./message";
 import { Compute } from "../utils";
-import { ErrorObject } from "../errors";
+import { ErrorObjectConstructor } from "../errors";
 
 export type Commands<Svc> = {
-  [Command in keyof Svc]: Svc[Command] extends (arg: infer A) => DeferredReply<ValueObject, ErrorObject[]> ? A extends ValueObject ? Command : never : never;
+  [Command in keyof Svc]: Svc[Command] extends (arg: infer A extends ValueObject) => DeferredReply<ValueObjectConstructor, Readonly<ErrorObjectConstructor[]>> ? Command : never;
 }[keyof Svc] & string;
 
 type CommandParam<
   Svc extends InstanceType<ExposableServiceConstructor>,
   Command extends Commands<Svc>
-> = Svc[Command] extends (arg: infer Args) => DeferredReply<ValueObject, ErrorObject[]>
+> = Svc[Command] extends (arg: infer Args) => DeferredReply<ValueObjectConstructor, Readonly<ErrorObjectConstructor[]>>
   ? Args extends ValueObject
     ? Args
     : never

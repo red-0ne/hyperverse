@@ -5,7 +5,7 @@ import { ValueObjectConstructor } from "../value-object";
 // wrapped in a Promise so each deferred reply class needs to be defined
 export function deferredReplyClassFactory<
   Success extends ValueObjectConstructor,
-  Failures extends Readonly<[...ErrorObjectConstructor[]]>,
+  Failures extends Readonly<ErrorObjectConstructor[]>,
 >(
   success: Success,
   failures: Failures,
@@ -21,10 +21,10 @@ export function deferredReplyClassFactory<
 
 export type DeferredReplyConstructor<
   Success extends ValueObjectConstructor = ValueObjectConstructor,
-  Failures extends ErrorObjectConstructor[] = ErrorObjectConstructor[],
+  Failures extends Readonly<ErrorObjectConstructor[]> = Readonly<ErrorObjectConstructor[]>,
 > = ReturnType<typeof deferredReplyClassFactory<Success, Failures>>;
 
 export type DeferredReply<
-  Success,
-  Failures extends any[],
-> = Promise<Success | Failures[number]>;
+  Success extends ValueObjectConstructor,
+  Failures extends Readonly<ErrorObjectConstructor[]>,
+> = InstanceType<DeferredReplyConstructor<Success, Failures>>;
