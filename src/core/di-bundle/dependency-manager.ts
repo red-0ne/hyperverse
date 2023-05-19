@@ -1,5 +1,5 @@
 import { Injector, Provider } from "injection-js";
-import { Constructor } from "../utils";
+import { Compute, Constructor } from "../utils";
 import { DependencyBundleTokenMap, InferDep, UnwrapIT, UnwrapITs } from "./types";
 
 function makeTokenProvider<K extends keyof T & string, T extends DependencyBundleTokenMap>(
@@ -55,5 +55,8 @@ export function dependencyBundleFactory<T extends DependencyBundleTokenMap>(bund
     }
   };
 
-  return DependencyBundle as Constructor<InferDep<T>> & typeof DependencyBundle;
+  return DependencyBundle as {
+    new(injector: Injector): Compute<InferDep<T>>,
+    provide<K extends keyof T & string>(key: K): ReturnType<typeof makeTokenProvider<K, T>>,
+  };
 }

@@ -125,12 +125,10 @@ describe("Dependency bundles", () => {
       timestamp: otherConfigInjector,
     }) {}
 
-    const someDeps = SomeDeps.provide("service")
-      .asClass(DepClass)
-      .provide("config")
-      .asValue("xyz")
-      .provide("timestamp")
-      .asFactory(() => new Date().getTime(), [])
+    const someDeps = SomeDeps
+      .provide("service").asClass(DepClass)
+      .provide("config").asValue("xyz")
+      .provide("timestamp").asFactory(() => new Date().getTime(), [])
       .seal();
 
     @Injectable()
