@@ -1,9 +1,9 @@
+import "reflect-metadata";
 import z, { Type, MappedType, Infer } from "myzod";
 import { expectType } from "ts-expect";
-import { CoreNamingService } from "../runner/naming-service";
-import { StreamBoundary } from "../stream/stream-service";
-import { Register } from "../value-object/register";
-import { ValueObject } from "../value-object/types";
+import { CoreNamingService } from "../runner";
+import { StreamBoundary } from "../stream";
+import { Register, ValueObject } from "../value-object";
 import { domainEventClassFactory } from "./domain-event";
 import { DomainEventStreamService } from "./domain-event-stream";
 import { DomainEventConstructor, ServiceEventPayload } from "./types";

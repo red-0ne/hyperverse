@@ -1,7 +1,7 @@
 import z, { Infer, ObjectType } from "myzod";
 import { ValueObject, ValueObjectConstructor, ValueObjectFQN } from "./types";
-import { CoreNamingService } from "../runner/naming-service";
 import { ErrorObjectFQN } from "../errors";
+import { CoreNamingService } from "../runner/naming-service";
 
 const root = z.unknown();
 
@@ -9,7 +9,6 @@ const root = z.unknown();
 // a different prototype chain for them (Error.prototype) vs (ValueObject.prototype)
 // so that we can use instanceof to check for errors vs values when messages are received
 // Having errors inherit from Error is important for stack traces and other error handling features of JS
-// eslint-disable-next-line @typescript-eslint/no-empty-function
 
 const ValueObject = {};
 

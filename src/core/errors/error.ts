@@ -1,7 +1,7 @@
 import { ObjectType } from "myzod";
 import { valueObjectClassFactory } from "../value-object";
-import { ErrorObjectFQN } from "./types";
 import { Compute, Constructor } from "../utils";
+import { ErrorObjectFQN } from "./types";
 
 export function errorObjectClassFactory<
   Name extends ErrorObjectFQN,

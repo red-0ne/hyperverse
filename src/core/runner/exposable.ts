@@ -29,6 +29,11 @@ export function Exposable(target: any, key: string) {
     return;
   }
 
-  CoreNamingService.registerCommand(target.constructor, key, params[0], returnType);
+  CoreNamingService.registerCommand(
+    target.constructor,
+    key,
+    params[0],
+    returnType,
+  );
   return target;
 }

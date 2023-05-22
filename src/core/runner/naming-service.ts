@@ -1,7 +1,14 @@
-import { FQN, ValueObjectConstructor, ValueObjectFQN } from "../value-object/types";
-import { ValueObjectMap } from "./types";
-import { ExposableService, CommandsConfig, ServiceConfigs, ExposableServiceConstructor, ServiceToken } from "./service";
-import { DeferredReplyConstructor } from "../messaging/deferred";
+import { FQN, ValueObjectConstructor, ValueObjectFQN } from "../value-object";
+import { DeferredReplyConstructor, Commands } from "../messaging";
+import {
+  ExposableService,
+  CommandsConfig,
+  ServiceConfigs,
+  ExposableServiceConstructor,
+  ServiceToken,
+} from "./service";
+
+export type ValueObjectMap<Name extends ValueObjectFQN = ValueObjectFQN> = Map<Name, ValueObjectConstructor<Name>>;
 
 export class NamingService {
   public readonly fqnKey = "Hyperverse::Core::FQN::0" as const;
@@ -9,9 +16,9 @@ export class NamingService {
   #serviceConfigs: ServiceConfigs = {};
   #valueObjectConstructors: ValueObjectMap = new Map();
 
-  public registerCommand(
-    service: ExposableServiceConstructor,
-    command: string,
+  public registerCommand<SvcCtor extends ExposableServiceConstructor>(
+    service: SvcCtor,
+    command: Commands<InstanceType<SvcCtor>>,
     paramValidator: ValueObjectConstructor,
     returnValidator: DeferredReplyConstructor,
   ) {
@@ -19,17 +26,28 @@ export class NamingService {
       this.#serviceConfigs[service.FQN] = { commands: {}, token: service.token };
     }
 
-    const serviceConfig = this.#serviceConfigs[service.FQN]!;
+    const commandsConfig = this.#serviceConfigs[service.FQN]!.commands;
 
-    if (serviceConfig.commands?.[command]) {
-      throw new Error("Already registered");
+    if (commandsConfig[command]) {
+      throw new Error("Command already registered");
     }
 
-    serviceConfig.commands[command] = {
+    // @ts-expect-error (command/data)MsgCtor is not defined here since it would
+    // trigger a circular dependency. This should be done in the runner level
+    // with the populateCommandValueObjects method
+    const cmdConfig: CommandsConfig[typeof command] = {
+      //commandMsgCtor: commandMessageClassFactory(service, command),
+      //dataMsgCtor: dataMessageClassFactory(service, command),
+      service,
       paramFQN: paramValidator?.FQN,
-      returnFQNs: [returnValidator.success.FQN, ...returnValidator.failures.map(f => f.FQN)],
+      returnFQNs: [
+        returnValidator.success.FQN,
+        ...returnValidator.failures.map(f => f.FQN),
+      ] as const,
       exposed: false,
     };
+
+    commandsConfig[command] = cmdConfig;
   }
 
   public getCommandConfig(serviceName: FQN, command: string): CommandsConfig[string] | undefined {
@@ -70,6 +88,18 @@ export class NamingService {
     }
 
     return ctor;
+  }
+
+  // we call this at the runner level ans with callbacks to avoid circular dependencies
+  // between the naming service and the value objects created early (errors and commands)
+  public populateCommandValueObjects(callback: (commandConfig: CommandsConfig[string], command: string) => void): void {
+    for (const serviceFQN in this.#serviceConfigs) {
+      const serviceConfig = this.#serviceConfigs[serviceFQN as FQN]!;
+      for (const command in serviceConfig.commands) {
+        const commandConfig = serviceConfig.commands[command]!;
+        callback(commandConfig, command);
+      }
+    }
   }
 }
 

@@ -1,3 +1,4 @@
+import "reflect-metadata";
 import z from "myzod";
 import { valueObjectClassFactory } from "../value-object";
 import { Register } from "../value-object/register";

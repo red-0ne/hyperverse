@@ -1,5 +1,5 @@
 import z from "myzod";
-import { PeerInfo } from "../runner/types";
+import { PeerInfo } from "./peer";
 import { positiveIntegerSchema } from "../utils";
 import { CommandMessage } from "./command";
 import { DataMessage } from "./data";

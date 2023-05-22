@@ -1,4 +1,5 @@
 import { ErrorObjectConstructor } from "../errors";
+import { CommandErrors } from "../runner";
 import { ValueObjectConstructor } from "../value-object";
 
 // We need this because we cannot get decorated return type param when
@@ -10,12 +11,16 @@ export function deferredReplyClassFactory<
   success: Success,
   failures: Failures,
 ) {
-  return class extends Promise<InstanceType<Success> | InstanceType<Failures[number]>> {
+  return class extends Promise<InstanceType<
+    Success |
+    Failures[number] |
+    typeof CommandErrors[number]
+  >> {
     static readonly success = success;
-    static readonly failures = failures;
+    static readonly failures = [ ...failures, ...CommandErrors ] as const;
 
     readonly success = success;
-    readonly failures = failures;
+    readonly failures = [ ...failures, ...CommandErrors ] as const;
   }
 }
 

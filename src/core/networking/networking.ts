@@ -1,12 +1,9 @@
 import { InjectionToken } from "injection-js";
 import { Message } from "../messaging/message";
-import { ValueObject } from "../value-object";
 
 export type NetworkingService = {
-  send(data: ValueObject, id: Message["id"], origin: Message["origin"]): Promise<void>;
-  messages<FilteredMessage extends Message, MessageTypesFilter extends (message: Message) => FilteredMessage>(
-    filter?: MessageTypesFilter,
-  ): AsyncIterable<FilteredMessage>;
+  send(message: Message): Promise<void>;
+  messages(): AsyncIterable<Message>;
 };
 
 export const NetworkingServiceToken = new InjectionToken<NetworkingService>("NetworkingService");

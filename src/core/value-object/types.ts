@@ -1,5 +1,5 @@
-import { MappedType, ObjectShape, ObjectType, Type } from "myzod";
-import { CoreNamingService } from "../runner/naming-service";
+import { MappedType, ObjectType, Type } from "myzod";
+import { CoreNamingService } from "../runner";
 import { Compute } from "../utils";
 
 /** Fully Qualified Name */

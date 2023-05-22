@@ -1,3 +1,4 @@
+import "reflect-metadata";
 import z from "myzod";
 import { Register } from "../value-object/register";
 import { isValueObject } from "../value-object/value-object-factory";

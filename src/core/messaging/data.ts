@@ -1,12 +1,10 @@
 import z, { MappedType } from "myzod";
-import { CoreNamingService } from "../runner/naming-service";
-import { ExposableServiceConstructor } from "../runner/service";
-import { valueObjectClassFactory } from "../value-object";
-import { ValueObjectConstructor, ValueObjectFQN } from "../value-object/types";
+import { ExposableServiceConstructor, CoreNamingService } from "../runner";
+import { valueObjectClassFactory, ValueObjectConstructor, ValueObjectFQN } from "../value-object";
+import { ErrorObjectConstructor } from "../errors";
 import { messageSchema } from "./message";
 import { Commands } from "./command";
 import { DeferredReply } from "./deferred";
-import { ErrorObjectConstructor } from "../errors";
 
 
 export type DataMessageFQN<Implementation extends string = string> = ValueObjectFQN<"Core", `Message::Data::${Implementation}`>;
@@ -19,7 +17,7 @@ type CommandResult<
   ? R extends DeferredReply<infer Success, infer Failure>
     ? InstanceType<Success> | InstanceType<Failure[number]>
     : never
-  : string;
+  : never;
 
 export function dataMessageClassFactory<
   Ctor extends ExposableServiceConstructor,
@@ -33,11 +31,11 @@ export function dataMessageClassFactory<
   }
 
   const [successFQN, ...failureFQNs] = serviceConfig.returnFQNs;
-  const svcFQN: Svc["FQN"] = serviceCtor.FQN;
+  const svcFQN: Ctor["FQN"] = serviceCtor.FQN;
   const success: ValueObjectConstructor = CoreNamingService.getValueObjectConstructor(successFQN);
   const failures: ErrorObjectConstructor[] = failureFQNs.map(f => CoreNamingService.getValueObjectConstructor(f));
   const result = [success, ...failures];
-  const fqn: DataMessageFQN<`${Svc["FQN"]}::${Command}`> = `${dataMessageFQN}${svcFQN}::${commandName}`;
+  const fqn: DataMessageFQN<`${Ctor["FQN"]}::${Command}`> = `${dataMessageFQN}${svcFQN}::${commandName}`;
   const validator = z.object({
     ...messageSchema.shape(),
     payload: z.union(result.map(r => r.schema())) as unknown as MappedType<Reply>,

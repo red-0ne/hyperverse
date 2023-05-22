@@ -1,17 +1,14 @@
 import "reflect-metadata";
 import z from "myzod";
+import { expectType } from "ts-expect";
 import { dependencyBundleFactory } from "../di-bundle";
+import { ValueObject, valueObjectClassFactory, Register, isValueObject } from "../value-object";
 import { ErrorObject, errorObjectClassFactory } from "../errors";
-import { ServiceToken, exposableServiceFactory } from "../runner/service";
-import { ValueObject, valueObjectClassFactory } from "../value-object";
-import { Register } from "../value-object/register";
+import { ServiceToken, exposableServiceFactory, CommandErrors, Exposable } from "../runner";
+import { dataMessageClassFactory } from "./data";
 import { CommandMessage, commandMessageClassFactory } from "./command";
 import { DeferredReply, deferredReplyClassFactory } from "./deferred";
-import { PeerId, PeerInfo } from "../runner/types";
-import { isValueObject } from "../value-object/value-object-factory";
-import { Exposable } from "../runner/exposable";
-import { expectType } from "ts-expect";
-import { dataMessageClassFactory } from "./data";
+import { PeerInfo, PeerId } from "./peer";
 
 describe.only("Messaging", () => {
   class UnregisteredArg {
@@ -156,15 +153,15 @@ describe.only("Messaging", () => {
     expect(replyPromise).toBeInstanceOf(Promise);
     expect(replyPromise).toBeInstanceOf(TheReply);
     expect(replyPromise.success).toEqual(Result);
-    expect(replyPromise.failures.length).toEqual(2);
-    expect(replyPromise.failures).toMatchObject([Err1, Err2]);
+    expect(replyPromise.failures.length).toEqual(6);
+    expect(replyPromise.failures).toMatchObject([Err1, Err2, ...CommandErrors]);
 
-    expectType<Promise<Result | Err1 | Err2>>(replyPromise);
+    expectType<Promise<Result | Err1 | Err2 | InstanceType<typeof CommandErrors[number]>>>(replyPromise);
     expectType<DeferredReply<typeof Result, Readonly<[typeof Err1, typeof Err2]>>>(replyPromise);
     expectType<TheReply>(replyPromise);
 
     expectType<typeof Result>(replyPromise.success);
-    expectType<Readonly<[typeof Err1, typeof Err2]>>(replyPromise.failures);
+    expectType<Readonly<[typeof Err1, typeof Err2, ...typeof CommandErrors]>>(replyPromise.failures);
 
     const reply = await replyPromise;
 

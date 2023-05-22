@@ -1,8 +1,9 @@
+import "reflect-metadata";
 import z from "myzod";
 import { errorObjectClassFactory } from "../errors";
-import { CoreNamingService } from "../runner/naming-service";
-import { Register } from "./register";
+import { CoreNamingService } from "../runner";
 
+import { Register } from "./register";
 import { isValueObject, valueObjectClassFactory } from "./value-object-factory";
 
 describe("ValueObject behavior", () => {

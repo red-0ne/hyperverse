@@ -1,16 +1,27 @@
 import { Inject, Injectable, InjectionToken, Injector } from "injection-js";
-import { NetworkingServiceToken } from "../networking/networking";
+import { ErrorObject } from "../errors";
+import { StreamService } from "../stream";
+import { FQN, isValueObject } from "../value-object";
+import { NetworkingServiceToken } from "../networking";
+import { dependencyBundleFactory } from "../di-bundle";
+import {
+  PeerId,
+  PeerInfo,
+  DataMessage,
+  CommandMessage,
+  commandMessageFQN,
+  dataMessageFQN,
+  DataMessageConstructor,
+  commandMessageClassFactory,
+  dataMessageClassFactory,
+} from "../messaging";
+import { ValueObject } from "../value-object";
+import { Compute, Constructor } from "../utils";
+
 import { PeerUpdated } from "./events";
 import { CoreNamingService } from "./naming-service";
 import { PeerUpdatesStreamToken } from "./service-registry";
-import { PeerId, PeerInfo } from "./types";
-import { ExposedServicesToken, ExposableService } from "./service";
-import { dependencyBundleFactory } from "../di-bundle";
-import { ErrorObject } from "../errors";
-import { StreamService } from "../stream/stream-service";
-import { isValueObject } from "../value-object/value-object-factory";
-
-import { DataMessage, CommandMessage, commandMessageFQN, dataMessageFQN } from "../messaging";
+import { ExposedServicesToken, ExposableService, ServiceToken } from "./service";
 
 import {
   InvalidParameters,
@@ -42,9 +53,11 @@ export class Runner {
   readonly #peerInfo: PeerInfo;
   readonly #deps: RunnerDeps;
   readonly #ready: Promise<void>;
+  readonly #injector: Injector;
 
-  constructor(deps: RunnerDeps, @Inject(Injector) protected readonly injector: Injector) {
+  constructor(deps: RunnerDeps, @Inject(Injector) injector: Injector) {
     this.#deps = deps;
+    this.#injector = injector;
     this.#peerInfo = this.#deps.identity.getPeerInfo();
 
     this.#ready = this.start();
@@ -55,6 +68,18 @@ export class Runner {
   }
 
   protected async start(): Promise<void> {
+    CoreNamingService.populateCommandValueObjects((commandConfig, command) => {
+      commandConfig.commandMsgCtor = commandMessageClassFactory(
+        commandConfig.service,
+        // @ts-expect-error commandConfig.service has never as command keys
+        command,
+      );
+      commandConfig.dataMsgCtor = dataMessageClassFactory(
+        commandConfig.service,
+        // @ts-expect-error commandConfig.service has never as command keys
+        command,
+      );
+    });
     this.subscribeToPeerUpdates();
     this.handleMessages();
     await this.publishExposedServices();
@@ -125,9 +150,16 @@ export class Runner {
     const commandConfig = CoreNamingService.getCommandConfig(serviceFQN, command);
 
     let error: ErrorObject | undefined;
+    let responseCtor = commandConfig?.dataMsgCtor as Compute<
+      DataMessageConstructor &
+      Constructor<DataMessage, [{ [key: string]: unknown, payload: ValueObject }]>
+    >;
+
 
     if (commandConfig === undefined) {
-      error = new UnknownCommand({ context: cmd });
+      error = new UnknownCommand({ context: payload });
+      // @ts-expect-error UnknownCommandMessage should be of same shape of DataMessage
+      responseCtor = UnknownCommandMessage;
     } else if (!commandConfig.exposed) {
       error = new ServiceUnavailable({ context: cmd });
     } else if (commandConfig.paramFQN !== param.FQN) {
@@ -135,17 +167,32 @@ export class Runner {
     }
 
     if (error !== undefined) {
-      this.#deps.networking.send(error, id, origin);
+      this.#deps.networking.send(new responseCtor({
+        id,
+        sequence: 0,
+        length: 1,
+        end: true,
+        origin,
+        payload: error,
+      }));
       return;
     }
 
-    const serviceToken = CoreNamingService.getServiceToken(serviceFQN);
-    const service: ExposableService = this.injector.get(serviceToken);
+    const serviceToken = CoreNamingService.getServiceToken(serviceFQN) as ServiceToken<ExposableService>;
+    const service = this.#injector.get(serviceToken);
     if (service === undefined) {
       const err = new ServiceNotInjected({ context: cmd });
       this.#deps.logger.emit(err);
       // should have ref pointing to something that references the original error
-      this.#deps.networking.send(new InternalError({ ref: err }), id, origin);
+      // maybe the Id of its log
+      this.#deps.networking.send(new responseCtor({
+        id,
+        sequence: 0,
+        length: 1,
+        end: true,
+        origin,
+        payload: new InternalError({ ref: err }),
+      }));
 
       return;
     }
@@ -155,32 +202,64 @@ export class Runner {
       const err = new CommandNotFound({ context: cmd });
       this.#deps.logger.emit(err);
       // should have ref pointing to something that references the original error
-      this.#deps.networking.send(new InternalError({ ref: err }), id, origin);
+      this.#deps.networking.send(new responseCtor({
+        id,
+        sequence: 0,
+        length: 1,
+        end: true,
+        origin,
+        payload: new InternalError({ ref: err }),
+      }));
 
       return;
     }
 
     try {
+      // We should support single message responses as well as stream responses
+      // Maybe through a StreamReply class just like DeferredReply
       // @ts-expect-error we know the command exists
-      const response = await service[command](param);
+      const response: ValueObject = await service[command](param);
       // @ts-expect-error commandConfig should already be checked earlier
       const returnFQNs = commandConfig.returnFQNs;
 
       if (isValueObject(response) && returnFQNs.includes(response.FQN)) {
-        this.#deps.networking.send(response, id, origin);
+        this.#deps.networking.send(new responseCtor({
+          id,
+          sequence: 0,
+          length: 1,
+          end: true,
+          origin,
+          payload: response,
+        }));
       } else {
         const err = new InvalidReturn({
           context: cmd,
           expectedFQNs: [...returnFQNs],
           actualFQN: response?.FQN,
         });
+
         this.#deps.logger.emit(err);
-        this.#deps.networking.send(new InternalError({ ref: err }), id, origin);
+        this.#deps.networking.send(new responseCtor({
+          id,
+          sequence: 0,
+          length: 1,
+          end: true,
+          origin,
+          payload: new InternalError({ ref: err }),
+        }));
       }
     } catch (e) {
       const err = new UnexpectedError({ error: e, context: cmd });
+
       this.#deps.logger.emit(err);
-      this.#deps.networking.send(new InternalError({ ref: err }), id, origin);
+      this.#deps.networking.send(new responseCtor({
+        id,
+        sequence: 0,
+        length: 1,
+        end: true,
+        origin,
+        payload: new InternalError({ ref: err }),
+      }));
     }
   }
 }
