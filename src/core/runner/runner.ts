@@ -32,10 +32,10 @@ import {
   ServiceNotInjected,
   ServiceUnavailable,
   UnexpectedError,
-  UnknownCommand,
   UnknownStreamId,
   InvalidReturn,
 } from "./errors";
+import { UnknownCommand } from "../messaging/errors";
 
 export class RunnerDeps extends dependencyBundleFactory({
   peerUpdates: PeerUpdatesStreamToken,

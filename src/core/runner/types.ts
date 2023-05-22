@@ -1,4 +1,5 @@
-import { InternalError, InvalidParameters, ServiceUnavailable, UnknownCommand } from "./errors";
+import { UnknownCommand } from "../messaging/errors";
+import { InternalError, InvalidParameters, ServiceUnavailable } from "./errors";
 
 export const CommandErrors = [
   InvalidParameters,

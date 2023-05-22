@@ -20,14 +20,6 @@ export class InvalidData extends errorObjectClassFactory(
 ) {}
 
 @Register
-export class UnknownCommand extends errorObjectClassFactory(
-  "Core::ValueObject::Error::UnknownCommand",
-  z.object({
-    context: z.unknown(),
-  }),
-) {}
-
-@Register
 export class ServiceUnavailable extends errorObjectClassFactory(
   "Core::ValueObject::Error::ServiceUnavailable",
   z.object({

@@ -228,7 +228,9 @@ describe('Runner', () => {
       Runner,
     ]);
     const runner: Runner = injector.get(Runner);
-    await runner.ready();
+    const ready = runner.ready();
+    expect(ready).toBeInstanceOf(Promise);
+    expect(await ready).toEqual(undefined);
 
     // TODO: Inject naming service if possible
     const exposed = CoreNamingService.getCommandConfig("Test::Console::BuiltIn", "print");
@@ -241,6 +243,10 @@ describe('Runner', () => {
     expect(exposed?.returnFQNs[1]).toEqual("Test::ValueObject::Error::BufferFull");
 
     const console: Console = injector.get(Console.token);
+    const consoleReady = console.ready();
+    expect(consoleReady).toBeInstanceOf(Promise);
+    expect(await ready).toEqual(undefined);
+
     const networking: DummyNetworking = injector.get(NetworkingServiceToken);
 
     const origin = new PeerInfo({ peerId: new PeerId({ id: "ID2" }), hosts: ["http://remote.localhost"] });
