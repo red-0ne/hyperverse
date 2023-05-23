@@ -9,8 +9,8 @@ export function exposableServiceFactory<
   Svc extends ExposableService,
 >(
   name: Name,
-  deps: DepsCtor,
-  token: ServiceToken<Svc>,
+  deps: DepsCtor = dependencyBundleFactory({}) as DepsCtor,
+  token: ServiceToken<Svc> = new ServiceToken<Svc>(name),
 ) {
   class ExposableSvc {
     public static readonly FQN = name;
@@ -65,6 +65,7 @@ export type ServiceConfigs = Record<
   {
     commands: CommandsConfig;
     token: ServiceToken;
+    service: ExposableServiceConstructor;
   }
 >;
 

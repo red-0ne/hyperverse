@@ -112,6 +112,7 @@ export class Runner {
     for await (const message of this.#deps.networking.messages()) {
       if (message.FQN.indexOf("Core::ValueObject::Message::") !== 0) {
         this.#deps.logger.emit(new InvalidMessage({ context: message }));
+        continue;
       }
 
       if (message.FQN.indexOf(commandMessageFQN) === 0) {

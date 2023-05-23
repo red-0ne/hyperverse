@@ -109,6 +109,12 @@ class Console extends exposableServiceFactory(
       return resolve(new VoidObject({}));
     });
   }
+
+  public unexposedCommand(_: Count): VoidReply {
+    return new VoidReply(async (resolve) => {
+      return resolve(new VoidObject({}));
+    });
+  }
 }
 
 @Register
@@ -285,5 +291,73 @@ describe('Runner', () => {
     networking.next(cmd);
     await new Promise(resolve => setTimeout(resolve, 10));
     expect(messagesCount).toEqual(2);
+  });
+
+  it("handle incoming data from network", async () => {
+  });
+
+  it("logs and ignores invalid incoming messages", async () => {
+  });
+
+  it("logs and ignores invalid data streams", async () => {
+  });
+
+  it("logs and ignores data not belonging to a stream definition", async () => {
+  });
+
+  it("closes and cleans an ended stream", async () => {
+  });
+});
+
+describe("NamingService", () => {
+  it("fails registering a command twice", () => {
+    const deps = RunnerDeps
+    class Svc1 extends exposableServiceFactory("Test::SomeService::Svc1") {
+      @Exposable
+      public someMethod(): VoidReply {
+        return new VoidReply(resolve => resolve(new VoidObject({})));
+      }
+    }
+
+    expect(() => {
+      class Svc2 extends exposableServiceFactory("Test::SomeService::Svc1") {
+        @Exposable
+        public someOtherMethod(): VoidReply {
+          return new VoidReply(resolve => resolve(new VoidObject({})));
+        }
+      }
+    }).toThrowError("Service already registered");
+
+    expect(() => {
+      const method1: string = "someMethod";
+      const method2: string = "someMethod";
+      class Svc3 extends exposableServiceFactory("Test::SomeService::Svc3") {
+        @Exposable
+        public [method1](): VoidReply {
+          return new VoidReply(resolve => resolve(new VoidObject({})));
+        }
+
+        @Exposable
+        public [method2](): VoidReply {
+          return new VoidReply(resolve => resolve(new VoidObject({})));
+        }
+      }
+    }).toThrowError("Command already registered");
+  });
+
+  it("fails to expose a command for an unrecognized service or command", () => {
+    expect(() => {
+      CoreNamingService.exposeCommand("Text::SomeService::Svc0", "someCommand");
+    }).toThrowError("Service not registered");
+
+    expect(() => {
+      CoreNamingService.exposeCommand("Test::Console::BuiltIn", "unexposedCommand");
+    }).toThrowError("Command not registered");
+  });
+
+  it("fails to register a value object twice", () => {
+    expect(() => {
+      CoreNamingService.registerValueObject(Count);
+    }).toThrowError("Already registered");
   });
 });

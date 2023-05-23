@@ -23,7 +23,13 @@ export class NamingService {
     returnValidator: DeferredReplyConstructor,
   ) {
     if (!this.#serviceConfigs[service.FQN]) {
-      this.#serviceConfigs[service.FQN] = { commands: {}, token: service.token };
+      this.#serviceConfigs[service.FQN] = {
+        commands: {},
+        token: service.token,
+        service,
+      };
+    } else if (service !== this.#serviceConfigs[service.FQN]?.service) {
+      throw new Error("Service already registered");
     }
 
     const commandsConfig = this.#serviceConfigs[service.FQN]!.commands;
@@ -57,12 +63,12 @@ export class NamingService {
   public exposeCommand(serviceName: FQN, command: string): void {
     const serviceConfig = this.#serviceConfigs?.[serviceName];
     if (!serviceConfig) {
-      throw new Error("Not registered");
+      throw new Error("Service not registered");
     }
 
     const commandConfig = serviceConfig.commands[command];
     if (!commandConfig) {
-      throw new Error("Not registered");
+      throw new Error("Command not registered");
     }
 
     commandConfig.exposed = true;
