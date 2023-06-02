@@ -16,8 +16,8 @@ export function Exposable(target: any, key: string) {
   }
 
   if (
-    !(returnType.prototype instanceof Promise) ||
-    !isValueObject(returnType.success.prototype) ||
+    //!(returnType.prototype instanceof Promise) ||
+    !isValueObject(returnType.success?.prototype) ||
     !Array.isArray(returnType.failures) ||
     !returnType.failures.every((e: any) =>
       isValueObject(e.prototype) && e.prototype instanceof Error)

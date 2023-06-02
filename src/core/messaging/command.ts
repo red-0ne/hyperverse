@@ -1,14 +1,14 @@
 import z, { Infer, MappedType } from "myzod";
 import { CoreNamingService, ExposableServiceConstructor } from "../runner";
-import { FQN, ValueObject, ValueObjectConstructor, ValueObjectFQN, Register, valueObjectClassFactory } from "../value-object";
+import { FQN, ValueObject, ValueObjectConstructor, ValueObjectFQN, valueObjectClassFactory } from "../value-object";
 import { Compute } from "../utils";
 import { ErrorObjectConstructor } from "../errors";
 import { DeferredReply } from "./deferred";
-import { messageSchema } from "./message";
+import { singleMessageSchema } from "./message";
 
 export type Commands<Svc> = {
   [Command in keyof Svc]: Svc[Command] extends
-    (arg: infer A extends ValueObject) => DeferredReply<
+    (arg: infer _ extends ValueObject) => DeferredReply<
       ValueObjectConstructor,
       Readonly<ErrorObjectConstructor[]>
     >
@@ -46,7 +46,7 @@ export function commandMessageClassFactory<
   const ParamVO  = CoreNamingService.getValueObjectConstructor(paramFQN);
   const fqn: CommandMessageFQN<`${Svc["FQN"]}::${Command}`> = `${commandMessageFQN}${svcFQN}::${commandName}`;
   const validator = z.object({
-    ...messageSchema.shape(),
+    ...singleMessageSchema.shape(),
     payload: z.object({
       serviceFQN: z.literal(serviceCtor.FQN as Svc["FQN"]),
       command: z.literal(commandName),
@@ -71,7 +71,7 @@ export type CommandMessage<
 > = ValueObject<
   CommandMessageFQN,
   Compute<
-    Infer<typeof messageSchema> &
+    Infer<typeof singleMessageSchema> &
     {
       payload: {
         serviceFQN: SvcFQN;

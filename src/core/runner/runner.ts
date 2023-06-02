@@ -1,7 +1,7 @@
 import { Inject, Injectable, InjectionToken, Injector } from "injection-js";
-import { ErrorObject } from "../errors";
+import { ErrorObject, ErrorObjectConstructor } from "../errors";
 import { StreamService } from "../stream";
-import { FQN, isValueObject } from "../value-object";
+import { FQN, ValueObjectConstructor, isValueObject } from "../value-object";
 import { NetworkingServiceToken } from "../networking";
 import { dependencyBundleFactory } from "../di-bundle";
 import {
@@ -14,6 +14,7 @@ import {
   DataMessageConstructor,
   commandMessageClassFactory,
   dataMessageClassFactory,
+  Message,
 } from "../messaging";
 import { ValueObject } from "../value-object";
 import { Compute, Constructor } from "../utils";
@@ -32,14 +33,17 @@ import {
   ServiceNotInjected,
   ServiceUnavailable,
   UnexpectedError,
-  UnknownStreamId,
+  UnknownCommId,
   InvalidReturn,
 } from "./errors";
-import { UnknownCommand } from "../messaging/errors";
+import { UnknownCommand, UnknownCommandMessage } from "../messaging/errors";
+import { DeferredReply, DeferredReplyConstructor } from "../messaging/deferred";
+
+export const LoggerServiceToken = new InjectionToken<StreamService>("LoggerService");
 
 export class RunnerDeps extends dependencyBundleFactory({
   peerUpdates: PeerUpdatesStreamToken,
-  logger: new InjectionToken<StreamService>("Foo"),
+  logger: LoggerServiceToken,
   networking: NetworkingServiceToken,
   // Have a proper impl for identity
   identity: new InjectionToken<{ getPeerInfo: () => PeerInfo }>("IdentityService"),
@@ -49,11 +53,24 @@ export class RunnerDeps extends dependencyBundleFactory({
 @Injectable()
 export class Runner {
   readonly #peers = new Map<PeerId["value"], PeerUpdated>();
-  readonly #dataStreams = new Map<string, any>();
-  readonly #peerInfo: PeerInfo;
-  readonly #deps: RunnerDeps;
-  readonly #ready: Promise<void>;
-  readonly #injector: Injector;
+  readonly #peerInfo!: PeerInfo;
+  readonly #deps!: RunnerDeps;
+  readonly #ready!: Promise<void>;
+  readonly #injector!: Injector;
+  readonly #replies = new Map<
+    PeerId["id"], Map<
+      PeerInfo["hosts"][number], Map<
+        Message["id"], {
+          promise?: DeferredReply<
+            ValueObjectConstructor,
+            Readonly<ErrorObjectConstructor[]>
+          >,
+          resolve?: (value: ValueObject) => void,
+          validResult: DeferredReplyConstructor,
+        }
+      >
+    >
+  >();
 
   constructor(deps: RunnerDeps, @Inject(Injector) injector: Injector) {
     this.#deps = deps;
@@ -65,6 +82,10 @@ export class Runner {
 
   public ready(): Promise<void> {
     return this.#ready;
+  }
+
+  public isExposed(serviceFQN: FQN, command: string): boolean {
+    return !!this.#deps.exposedServices[serviceFQN]?.includes(command);
   }
 
   protected async start(): Promise<void> {
@@ -86,13 +107,6 @@ export class Runner {
   }
 
   protected async publishExposedServices() {
-    for (const [serviceName, serviceConfig] of Object.entries(this.#deps.exposedServices)) {
-      for (const commandName of serviceConfig) {
-        // @ts-expect-error serviceName is a FQN
-        CoreNamingService.exposeCommand(serviceName, commandName);
-      }
-    }
-
     await this.#deps.peerUpdates.emit(
       PeerUpdated.withPayload({
         peerInfo: this.#peerInfo,
@@ -110,89 +124,134 @@ export class Runner {
 
   protected async handleMessages() {
     for await (const message of this.#deps.networking.messages()) {
-      if (message.FQN.indexOf("Core::ValueObject::Message::") !== 0) {
-        this.#deps.logger.emit(new InvalidMessage({ context: message }));
-        continue;
-      }
-
       if (message.FQN.indexOf(commandMessageFQN) === 0) {
         this.handleIncomingCommand(message as CommandMessage);
       } else if (message.FQN.indexOf(dataMessageFQN) === 0) {
-        this.handleIncomingData(message as DataMessage);
+        this.handleIncomingCommandReply(message as DataMessage);
+      } else {
+        this.#deps.logger.emit(new InvalidMessage({ context: message }));
       }
     }
   }
 
-  protected async handleIncomingData(data: DataMessage) {
-    const stream = this.#dataStreams.get(data.id);
-    if (stream === undefined) {
-      this.#deps.logger.emit(new UnknownStreamId({ context: data }));
+  // tighten return type
+  public sendCommand(command: CommandMessage) {
+    let peer = this.#replies.get(command.destination.peerId.id);
+    if (!peer) {
+      peer = new Map();
+      this.#replies.set(command.destination.peerId.id, peer);
+    }
+
+    let host = peer.get(command.destination.host);
+    if (!host) {
+      host = new Map();
+      peer.set(command.destination.host, host);
+    }
+
+    let reply = host.get(command.id);
+    if (reply) {
+      // throw command id already exists
+      // handle this case better
+      // actually, we could reply to the calling service with the error
+      throw new Error("Command id already exists");
+    }
+
+    const deferredCtor = CoreNamingService.getCommandConfig(
+      command.payload.serviceFQN,
+      command.payload.command,
+    )!.returnCtor as DeferredReplyConstructor;
+
+    reply = { promise: undefined, resolve: undefined, validResult: deferredCtor };
+    reply.promise = new deferredCtor(() => {
+      const result = new Promise<ValueObject>((resolve) => {
+        reply!.resolve = resolve;
+      });
+
+      host?.delete(command.id);
+      if (host?.size === 1) {
+        peer?.delete(command.destination.host);
+        if (peer?.size === 1) {
+          this.#replies.delete(command.destination.peerId.id);
+        }
+      }
+
+      return result;
+    });
+
+    host.set(command.id, reply);
+    return this.#deps.networking.send(command).then(() => reply!.promise);
+  }
+
+  protected async handleIncomingCommandReply(data: DataMessage) {
+    const reply = this.#replies
+      ?.get(data.origin.peerId.id)
+      ?.get(data.origin.host)
+      ?.get(data.id);
+
+    if (reply === undefined) {
+      this.#deps.logger.emit(new UnknownCommId({ context: data }));
       return;
     }
 
-    if (!stream.isValid(data)) {
-      this.#deps.logger.emit(new InvalidData({ expectedFQN: stream.FQN, context: data }));
+    if (!reply.validResult.isValid(data.payload)) {
+      this.#deps.logger.emit(new InvalidData({ expectedFQN: reply.validResult.success.FQN, context: data }));
       return;
     }
 
-    // should we next the logged error to the stream?
-    stream.next(data);
-
-    if (data.end) {
-      stream.done();
-      this.#dataStreams.delete(data.id);
-    }
+    reply.resolve!(data.payload)
   }
 
   protected async handleIncomingCommand(cmd: CommandMessage) {
-    const { payload, origin, id } = cmd;
+    const { payload, origin, destination, id } = cmd;
     const { serviceFQN, command, param } = payload;
     // Naming service should be injectable (?)
     const commandConfig = CoreNamingService.getCommandConfig(serviceFQN, command);
 
-    let error: ErrorObject | undefined;
     let responseCtor = commandConfig?.dataMsgCtor as Compute<
       DataMessageConstructor &
       Constructor<DataMessage, [{ [key: string]: unknown, payload: ValueObject }]>
     >;
 
 
+    let error: ErrorObject | undefined;
     if (commandConfig === undefined) {
-      error = new UnknownCommand({ context: payload });
+      error = new UnknownCommand({ context: cmd });
       // @ts-expect-error UnknownCommandMessage should be of same shape of DataMessage
       responseCtor = UnknownCommandMessage;
-    } else if (!commandConfig.exposed) {
+    } else if (!this.isExposed(serviceFQN, command)) {
       error = new ServiceUnavailable({ context: cmd });
     } else if (commandConfig.paramFQN !== param.FQN) {
       error = new InvalidParameters({ context: cmd, expectedFQN: commandConfig.paramFQN });
     }
 
     if (error !== undefined) {
-      this.#deps.networking.send(new responseCtor({
+      await this.#deps.networking.send(new responseCtor({
         id,
         sequence: 0,
         length: 1,
         end: true,
-        origin,
+        origin: destination,
+        destination: origin,
         payload: error,
       }));
       return;
     }
 
     const serviceToken = CoreNamingService.getServiceToken(serviceFQN) as ServiceToken<ExposableService>;
-    const service = this.#injector.get(serviceToken);
-    if (service === undefined) {
+    let service;
+    try {
+      service = this.#injector.get(serviceToken);
+    } catch (e) {
       const err = new ServiceNotInjected({ context: cmd });
-      this.#deps.logger.emit(err);
-      // should have ref pointing to something that references the original error
-      // maybe the Id of its log
-      this.#deps.networking.send(new responseCtor({
+      const logId = await this.#deps.logger.emit(err);
+      await this.#deps.networking.send(new responseCtor({
         id,
         sequence: 0,
         length: 1,
         end: true,
-        origin,
-        payload: new InternalError({ ref: err }),
+        origin: destination,
+        destination: origin,
+        payload: new InternalError({ ref: logId }),
       }));
 
       return;
@@ -201,35 +260,34 @@ export class Runner {
     // @ts-expect-error CommandConfig type does not have key signature
     if (typeof service[command] !== "function") {
       const err = new CommandNotFound({ context: cmd });
-      this.#deps.logger.emit(err);
-      // should have ref pointing to something that references the original error
-      this.#deps.networking.send(new responseCtor({
+      const logId = await this.#deps.logger.emit(err);
+      await this.#deps.networking.send(new responseCtor({
         id,
         sequence: 0,
         length: 1,
         end: true,
-        origin,
-        payload: new InternalError({ ref: err }),
+        origin: destination,
+        destination: origin,
+        payload: new InternalError({ ref: logId }),
       }));
 
       return;
     }
 
     try {
-      // We should support single message responses as well as stream responses
-      // Maybe through a StreamReply class just like DeferredReply
       // @ts-expect-error we know the command exists
       const response: ValueObject = await service[command](param);
       // @ts-expect-error commandConfig should already be checked earlier
       const returnFQNs = commandConfig.returnFQNs;
 
       if (isValueObject(response) && returnFQNs.includes(response.FQN)) {
-        this.#deps.networking.send(new responseCtor({
+        await this.#deps.networking.send(new responseCtor({
           id,
           sequence: 0,
           length: 1,
           end: true,
-          origin,
+          origin: destination,
+          destination: origin,
           payload: response,
         }));
       } else {
@@ -239,27 +297,29 @@ export class Runner {
           actualFQN: response?.FQN,
         });
 
-        this.#deps.logger.emit(err);
-        this.#deps.networking.send(new responseCtor({
+        const logId = await this.#deps.logger.emit(err);
+        await this.#deps.networking.send(new responseCtor({
           id,
           sequence: 0,
           length: 1,
           end: true,
-          origin,
-          payload: new InternalError({ ref: err }),
+          origin: destination,
+          destination: origin,
+          payload: new InternalError({ ref: logId }),
         }));
       }
     } catch (e) {
       const err = new UnexpectedError({ error: e, context: cmd });
 
-      this.#deps.logger.emit(err);
-      this.#deps.networking.send(new responseCtor({
+      const logId = await this.#deps.logger.emit(err);
+      await this.#deps.networking.send(new responseCtor({
         id,
         sequence: 0,
         length: 1,
         end: true,
-        origin,
-        payload: new InternalError({ ref: err }),
+        origin: destination,
+        destination: origin,
+        payload: new InternalError({ ref: logId }),
       }));
     }
   }

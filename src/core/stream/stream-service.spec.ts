@@ -27,9 +27,9 @@ describe("Stream service", () => {
       public readonly sequence: (Data1 | Data2)[]
     ) { }
 
-    public emit(data: Data1 | Data2): Promise<void> {
+    public emit(data: Data1 | Data2): Promise<string> {
       this.sequence.push(data);
-      return Promise.resolve();
+      return Promise.resolve("ack");
     }
 
     public ready(): Promise<void> {

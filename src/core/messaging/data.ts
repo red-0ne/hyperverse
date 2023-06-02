@@ -1,8 +1,8 @@
 import z, { MappedType } from "myzod";
-import { ExposableServiceConstructor, CoreNamingService } from "../runner";
+import { ExposableServiceConstructor, CoreNamingService, CommandErrors } from "../runner";
 import { valueObjectClassFactory, ValueObjectConstructor, ValueObjectFQN } from "../value-object";
 import { ErrorObjectConstructor } from "../errors";
-import { messageSchema } from "./message";
+import { singleMessageSchema } from "./message";
 import { Commands } from "./command";
 import { DeferredReply } from "./deferred";
 
@@ -15,7 +15,7 @@ type CommandResult<
   Command extends Commands<Svc>
 > = Svc[Command] extends (arg: any) => infer R
   ? R extends DeferredReply<infer Success, infer Failure>
-    ? InstanceType<Success> | InstanceType<Failure[number]>
+    ? InstanceType<Success> | InstanceType<Failure[number]> | InstanceType<typeof CommandErrors[number]>
     : never
   : never;
 
@@ -34,11 +34,14 @@ export function dataMessageClassFactory<
   const svcFQN: Ctor["FQN"] = serviceCtor.FQN;
   const success: ValueObjectConstructor = CoreNamingService.getValueObjectConstructor(successFQN);
   const failures: ErrorObjectConstructor[] = failureFQNs.map(f => CoreNamingService.getValueObjectConstructor(f));
-  const result = [success, ...failures];
+  const result = [success, ...failures, ...CommandErrors];
   const fqn: DataMessageFQN<`${Ctor["FQN"]}::${Command}`> = `${dataMessageFQN}${svcFQN}::${commandName}`;
   const validator = z.object({
-    ...messageSchema.shape(),
-    payload: z.union(result.map(r => r.schema())) as unknown as MappedType<Reply>,
+    ...singleMessageSchema.shape(),
+    payload: z.union(
+      // @ts-ignore
+      result.map(r => r.schema().withPredicate(v => v.FQN === r.FQN))
+    ) as unknown as MappedType<Reply>,
   });
 
   const dataCtor = valueObjectClassFactory(fqn, validator);

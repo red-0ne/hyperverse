@@ -44,34 +44,20 @@ export class NamingService {
     const cmdConfig: CommandsConfig[typeof command] = {
       //commandMsgCtor: commandMessageClassFactory(service, command),
       //dataMsgCtor: dataMessageClassFactory(service, command),
+      returnCtor: returnValidator,
       service,
       paramFQN: paramValidator?.FQN,
       returnFQNs: [
         returnValidator.success.FQN,
         ...returnValidator.failures.map(f => f.FQN),
       ] as const,
-      exposed: false,
     };
 
     commandsConfig[command] = cmdConfig;
   }
 
-  public getCommandConfig(serviceName: FQN, command: string): CommandsConfig[string] | undefined {
+  public getCommandConfig<Name extends FQN>(serviceName: Name, command: string): CommandsConfig[string] | undefined {
     return this.#serviceConfigs?.[serviceName]?.commands?.[command];
-  }
-
-  public exposeCommand(serviceName: FQN, command: string): void {
-    const serviceConfig = this.#serviceConfigs?.[serviceName];
-    if (!serviceConfig) {
-      throw new Error("Service not registered");
-    }
-
-    const commandConfig = serviceConfig.commands[command];
-    if (!commandConfig) {
-      throw new Error("Command not registered");
-    }
-
-    commandConfig.exposed = true;
   }
 
   public getServiceToken(serviceName: FQN): ServiceToken<ExposableService<FQN>> | undefined {
@@ -96,7 +82,7 @@ export class NamingService {
     return ctor;
   }
 
-  // we call this at the runner level ans with callbacks to avoid circular dependencies
+  // we call this at the runner level and with callbacks to avoid circular dependencies
   // between the naming service and the value objects created early (errors and commands)
   public populateCommandValueObjects(callback: (commandConfig: CommandsConfig[string], command: string) => void): void {
     for (const serviceFQN in this.#serviceConfigs) {

@@ -28,7 +28,7 @@ export type ValueObjectConstructor<
   VO extends ValueObject<N, X> = ValueObject<N, X>
 > = {
   readonly FQN: N;
-  validator<T extends Type<X>>(): T;
+  validator<T extends ObjectType<X>>(): T;
   schema<MT extends MappedType<VO>>(): MT;
   new(input: X): ValueObject<N, X>;
 }

@@ -45,11 +45,15 @@ export function valueObjectClassFactory<
     this: { __parsedValue__: Infer<Validator> },
     input: Infer<Validator>
   ) {
-    let extractedInput = (input?.value && input?.[CoreNamingService.fqnKey] === name)
-      ? input.value
+    const extractedValue = input?.value;
+    let extractedInput = (extractedValue && input?.[CoreNamingService.fqnKey] === name)
+      ? extractedValue
       : input;
 
     if (isValueObject(extractedInput)) {
+      if (extractedInput.FQN !== name) {
+        throw new Error(`FQN mismatch`);
+      }
       extractedInput = extractedInput.value();
     }
 

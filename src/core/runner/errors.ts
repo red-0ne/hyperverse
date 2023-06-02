@@ -3,8 +3,8 @@ import { errorObjectClassFactory } from "../errors";
 import { Register } from "../value-object/register";
 
 @Register
-export class UnknownStreamId extends errorObjectClassFactory(
-  "Core::ValueObject::Error::UnknownStreamId",
+export class UnknownCommId extends errorObjectClassFactory(
+  "Core::ValueObject::Error::UnknownCommId",
   z.object({
     context: z.unknown(),
   }),

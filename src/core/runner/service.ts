@@ -2,6 +2,7 @@ import { InjectionToken } from "injection-js";
 import { DependencyBundleTokenMap, dependencyBundleFactory } from "../di-bundle";
 import { ErrorObjectFQN } from "../errors";
 import { FQN, ValueObjectConstructor, ValueObjectFQN } from "../value-object";
+import { CommandMessageFQN, DataMessageFQN, DeferredReplyConstructor } from "../messaging";
 
 export function exposableServiceFactory<
   Name extends FQN,
@@ -49,15 +50,15 @@ export class ServiceToken<S extends ExposableService = ExposableService> extends
 }
 
 export type CommandsConfig<ParamFQN extends ValueObjectFQN = ValueObjectFQN> = Record<string, {
-  commandMsgCtor: ValueObjectConstructor,
-  dataMsgCtor: ValueObjectConstructor,
+  commandMsgCtor: ValueObjectConstructor<CommandMessageFQN, any>,
+  dataMsgCtor: ValueObjectConstructor<DataMessageFQN, any>,
+  returnCtor: DeferredReplyConstructor,
   service: ExposableServiceConstructor,
   paramFQN: ParamFQN,
   returnFQNs: Readonly<[
     ValueObjectFQN,
     ...ErrorObjectFQN[],
   ]>,
-  exposed: boolean,
 }>;
 
 export type ServiceConfigs = Record<

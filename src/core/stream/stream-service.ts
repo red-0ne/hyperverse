@@ -28,7 +28,7 @@ export type StreamService<
 
   lastData?: Data;
 
-  emit(data: Data): Promise<void>;
+  emit(data: Data): Promise<string>;
   stream(limit?: StreamBoundary): AsyncIterable<Data>;
   ready(): Promise<void>;
 };
