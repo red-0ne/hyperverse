@@ -1,3 +1,4 @@
+import { isDeferredReplyConstructor } from "../messaging/deferred";
 import { isValueObject } from "../value-object/value-object-factory";
 import { CoreNamingService } from "./naming-service";
 
@@ -16,7 +17,7 @@ export function Exposable(target: any, key: string) {
   }
 
   if (
-    //!(returnType.prototype instanceof Promise) ||
+    !isDeferredReplyConstructor(returnType) ||
     !isValueObject(returnType.success?.prototype) ||
     !Array.isArray(returnType.failures) ||
     !returnType.failures.every((e: any) =>

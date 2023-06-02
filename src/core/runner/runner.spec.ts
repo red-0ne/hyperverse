@@ -91,7 +91,8 @@ class BufferFull extends errorObjectClassFactory(
   z.object({}),
 ) {}
 
-class VoidReply extends deferredReplyClassFactory(VoidObject, [BufferFull]) {}
+const VoidReply = deferredReplyClassFactory(VoidObject, [BufferFull]);
+type VoidReply = InstanceType<typeof VoidReply>;
 
 @Register
 class Count extends valueObjectClassFactory(
@@ -118,43 +119,37 @@ class Console extends exposableServiceFactory(
   }
 
   @Exposable
-  public print(count: Count): VoidReply {
-    return new VoidReply(async () => {
-      const boundary = new StreamBoundary({ start: 0, end: count.v });
-      for await (const update of this.#deps.peerUpdates.stream(boundary)) {
-        if (this.output.length > 100) {
-          return new BufferFull({ max: 100 });
-        }
-        this.output.push(update);
+  public async print(count: Count): VoidReply {
+    const boundary = new StreamBoundary({ start: 0, end: count.v });
+    for await (const update of this.#deps.peerUpdates.stream(boundary)) {
+      if (this.output.length > 100) {
+        return new BufferFull({ max: 100 });
       }
-      return new VoidObject({});
-    });
+      this.output.push(update);
+    }
+    return new VoidObject({});
   }
 
   @Exposable
-  public slowCommand(count: Count): VoidReply {
-    return new VoidReply(async () => {
-      await new Promise(r => setTimeout(r, 1000));
-      return new VoidObject({});
-    });
+  public async slowCommand(count: Count): VoidReply {
+    await new Promise(r => setTimeout(r, 1000));
+    return new VoidObject({});
   }
 
   @Exposable
-  public badPrint(c: Count): VoidReply {
+  public async badPrint(c: Count): VoidReply {
+    if (c.v > 100) {
+      throw new Error("Some error");
+    }
+
     // @ts-expect-error we fake a bad return type
-    return new VoidReply(async () => {
-      if (c.v > 100) {
-        throw new Error("Some error");
-      }
-      const result = new LoggedData({ data: new VoidObject({}) })
-      return result;
-    });
+    const result: VoidObject = new LoggedData({ data: new VoidObject({}) })
+
+    return result;
   }
 
-  public unexposedCommand(_: Count): VoidReply {
-    return new VoidReply(async () => {
-      return new VoidObject({});
-    });
+  public async unexposedCommand(_: Count): VoidReply {
+    return new VoidObject({});
   }
 }
 
@@ -758,7 +753,7 @@ describe('Runner', () => {
     expect(logs[0].data).toBeInstanceOf(UnexpectedError);
     expect(logs[0].data.context).toMatchObject(cmd);
     expect(logs[0].data.error).toBeInstanceOf(Error);
-    expect(logs[0].data.error.message).toEqual("Some Error");
+    expect(logs[0].data.error.message).toEqual("Some error");
     expect(logs[0].data.error.stack).toBeDefined();
   });
 });

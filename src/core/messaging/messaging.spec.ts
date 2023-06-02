@@ -43,30 +43,29 @@ describe.only("Messaging", () => {
     z.object({ reason: z.number() }),
   ) {}
 
-  class TheReply extends deferredReplyClassFactory(Result, [Err1, Err2] as const) {}
+  const TheReply = deferredReplyClassFactory(Result, [Err1, Err2] as const);
+  type TheReply = InstanceType<typeof TheReply>;
 
   class Service extends exposableServiceFactory(
     "Test::X::Y",
     dependencyBundleFactory({}),
-    new ServiceToken("Test::X::Y")
+    new ServiceToken("Test::X::Y"),
   ) {
     @Exposable
-    theCommand(x: Arg): TheReply {
-      return new TheReply(async () => {
-        await new Promise((r) => setTimeout(r, 100));
-        if (x.foo !== "bob") return new Result({ r: true });
-        else return new Err1({ reason: "a" });
-      });
+    async theCommand(x: Arg): TheReply {
+      await new Promise((r) => setTimeout(r, 100));
+      if (x.foo !== "bob") return new Result({ r: true });
+      else return new Err1({ reason: "a" });
     }
 
     @Exposable
-    commandWithUnregisteredArg(x: UnregisteredArg): TheReply {
-      return new TheReply(async () => new Result({ r: x.foo === false }));
+    async commandWithUnregisteredArg(x: UnregisteredArg): TheReply {
+      return new Result({ r: x.foo === false });
     }
 
     @Exposable
-    simpleFn(x: string): TheReply {
-      return new TheReply(async () => new Result({ r: x === "bar" }));
+    async simpleFn(x: string): TheReply {
+      return new Result({ r: x === "bar" });
     }
 
     @Exposable
@@ -74,8 +73,8 @@ describe.only("Messaging", () => {
       return x.foo;
     }
 
-    bar(x: Arg): TheReply {
-      return new TheReply(async () => new Result({ r: x.foo === "bar" }));
+    async bar(x: Arg): TheReply {
+      return new Result({ r: x.foo === "bar" });
     }
   }
 
@@ -155,17 +154,10 @@ describe.only("Messaging", () => {
     const replyPromise = service.theCommand(new Arg({ foo: "bar" }));
 
     expect(replyPromise).toBeInstanceOf(Promise);
-    //expect(replyPromise).toBeInstanceOf(TheReply);
-    //expect(replyPromise.success).toEqual(Result);
-    //expect(replyPromise.failures.length).toEqual(6);
-    //expect(replyPromise.failures).toMatchObject([Err1, Err2, ...CommandErrors]);
 
     expectType<Promise<Result | Err1 | Err2 | InstanceType<typeof CommandErrors[number]>>>(replyPromise);
     expectType<DeferredReply<typeof Result, Readonly<[typeof Err1, typeof Err2]>>>(replyPromise);
     expectType<TheReply>(replyPromise);
-
-    //expectType<typeof Result>(replyPromise.success);
-    //expectType<Readonly<[typeof Err1, typeof Err2, ...typeof CommandErrors]>>(replyPromise.failures);
 
     const reply = await replyPromise;
 

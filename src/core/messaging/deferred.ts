@@ -3,6 +3,8 @@ import { CommandErrors } from "../runner";
 import { Compute, Constructor } from "../utils";
 import { ValueObjectConstructor } from "../value-object";
 
+const deferredReplySymbol = Symbol("deferredReply");
+
 type ValidReturns<
   Success extends ValueObjectConstructor,
   Failures extends Readonly<ErrorObjectConstructor[]>,
@@ -38,8 +40,13 @@ export function deferredReplyClassFactory<
   DeferredReplyCtor.success = success;
   DeferredReplyCtor.failures = allErrors;
   DeferredReplyCtor.isValid = isValid;
+  DeferredReplyCtor.deferredSymbol = () => deferredReplySymbol;
 
   return DeferredReplyCtor as unknown as DeferredReplyConstructor<Success, Failures>;
+}
+
+export function isDeferredReplyConstructor(value: any): boolean {
+  return value?.deferredSymbol?.() === deferredReplySymbol;
 }
 
 export type DeferredReplyConstructor<
@@ -47,7 +54,7 @@ export type DeferredReplyConstructor<
   Failures extends Readonly<ErrorObjectConstructor[]> = Readonly<ErrorObjectConstructor[]>,
 > = Compute<
   Constructor<
-    Promise<ValidReturns<Success, Failures>> & { isValid(value: unknown): boolean },
+    Promise<ValidReturns<Success, Failures>>,
     [() => Promise<ValidReturns<Success, Failures>>]
   > &
   { success: Success; failures: Failures; isValid(value: unknown): boolean }

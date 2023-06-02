@@ -16,6 +16,7 @@ export class StreamBoundary extends valueObjectClassFactory(
   streamBoundarySchema,
 ) {}
 
+// this should be a value object, so we can pass it as a param to commands and get it back as a return value
 export type StreamService<
   Name extends StreamFQN<string, string> = any,
   DataConstructors extends { [key: number]: ValueObjectConstructor<ValueObjectFQN, any> } = any,
@@ -28,7 +29,7 @@ export type StreamService<
 
   lastData?: Data;
 
-  emit(data: Data): Promise<string>;
+  emit(data: Data): Promise<string | void>;
   stream(limit?: StreamBoundary): AsyncIterable<Data>;
   ready(): Promise<void>;
 };
